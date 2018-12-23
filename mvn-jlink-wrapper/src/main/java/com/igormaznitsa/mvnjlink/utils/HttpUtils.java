@@ -2,13 +2,20 @@ package com.igormaznitsa.mvnjlink.utils;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.routing.HttpRoute;
@@ -31,16 +38,66 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.function.Consumer;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
 
 public final class HttpUtils {
 
   private HttpUtils() {
 
+  }
+
+  @Nonnull
+  public static void doGetRequest(
+      @Nonnull final HttpClient client,
+      @Nonnull final String urlLink,
+      @Nullable final ProxySettings proxySettings,
+      @Nonnull final Consumer<HttpEntity> consumer,
+      @Nonnull @MustNotContainNull final String... acceptedContent
+  ) throws IOException {
+    final RequestConfig.Builder config = RequestConfig.custom();
+
+    if (proxySettings != null) {
+      final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);
+      config.setProxy(proxyHost);
+    }
+
+    final HttpGet methodGet = new HttpGet(urlLink);
+
+    if (acceptedContent.length != 0) {
+      methodGet.addHeader("Accept", of(acceptedContent).collect(joining(",")));
+    }
+
+    methodGet.setConfig(config.build());
+
+    final HttpResponse response = client.execute(methodGet);
+    try {
+      final StatusLine statusLine = response.getStatusLine();
+
+      if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
+        throw new IOException(String.format("Can't load SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+      }
+
+      final HttpEntity entity = response.getEntity();
+      final Header contentType = entity.getContentType();
+
+      if (acceptedContent.length != 0 && of(acceptedContent).anyMatch(x -> x.equalsIgnoreCase(contentType.getValue()))) {
+        throw new IOException("Unexpected content type : " + contentType.getValue());
+      }
+
+      consumer.accept(entity);
+
+    } finally {
+      methodGet.releaseConnection();
+    }
   }
 
   @Nonnull
@@ -118,7 +175,7 @@ public final class HttpUtils {
       logger.debug("Proxy will ignore: " + Arrays.toString(matchers));
     }
 
-    builder.setUserAgent("mvn-golang-wrapper-agent/1.0");
+    builder.setUserAgent("mvn-jlink-agent/1.0");
 
     if (disableSslCheck) {
       try {

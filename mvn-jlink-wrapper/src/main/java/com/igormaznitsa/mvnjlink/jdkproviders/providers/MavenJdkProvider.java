@@ -5,8 +5,8 @@ import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 
 import javax.annotation.Nonnull;
 
-public class AdoptOpenJdkProvider extends AbstractJdkProvider {
-  public AdoptOpenJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
+public class MavenJdkProvider extends AbstractJdkProvider {
+  public MavenJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
     super(mojo);
   }
 }
