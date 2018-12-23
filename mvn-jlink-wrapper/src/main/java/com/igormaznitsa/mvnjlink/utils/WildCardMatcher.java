@@ -17,8 +17,11 @@
 package com.igormaznitsa.mvnjlink.utils;
 
 import javax.annotation.Nonnull;
-import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static java.lang.Integer.toHexString;
+import static java.util.Locale.ENGLISH;
+import static java.util.regex.Pattern.compile;
 
 public final class WildCardMatcher {
 
@@ -30,20 +33,22 @@ public final class WildCardMatcher {
     final StringBuilder builder = new StringBuilder();
     for (final char c : this.addressPattern.toCharArray()) {
       switch (c) {
-        case '*':
+        case '*': {
           builder.append(".*");
-          break;
-        case '?':
+        }
+        break;
+        case '?': {
           builder.append('.');
-          break;
+        }
+        break;
         default: {
-          final String code = Integer.toHexString(c).toUpperCase(Locale.ENGLISH);
-          builder.append("\\u").append("0000".substring(0, 4 - code.length())).append(code);
+          final String code = toHexString(c).toUpperCase(ENGLISH);
+          builder.append("\\u").append("0000", 0, 4 - code.length()).append(code);
         }
         break;
       }
     }
-    this.pattern = Pattern.compile(builder.toString());
+    this.pattern = compile(builder.toString());
   }
 
   public boolean match(@Nonnull final String txt) {

@@ -133,10 +133,12 @@ public final class HttpUtils {
 
           @Override
           public void checkClientTrusted(@Nonnull @MustNotContainNull final X509Certificate[] arg0, @Nonnull final String arg1) throws CertificateException {
+            // do nothing
           }
 
           @Override
           public void checkServerTrusted(@Nonnull @MustNotContainNull final X509Certificate[] arg0, @Nonnull String arg1) throws CertificateException {
+            // do nothing
           }
         };
         sslcontext.init(null, new TrustManager[] {tm}, null);

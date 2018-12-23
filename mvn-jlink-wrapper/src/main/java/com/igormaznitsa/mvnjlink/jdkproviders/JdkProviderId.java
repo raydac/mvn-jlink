@@ -22,7 +22,7 @@ public enum JdkProviderId {
     try {
       return this.implementation.getDeclaredConstructor().newInstance();
     }catch(InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
-      throw new RuntimeException("Can't create instance of JDK provider", e);
+      throw new Error("Unexpected error, can't create instance of JDK provider", e);
     }
   }
 }
