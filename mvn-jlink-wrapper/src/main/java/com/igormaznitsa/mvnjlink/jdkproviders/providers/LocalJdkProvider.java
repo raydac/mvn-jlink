@@ -16,8 +16,8 @@ public class LocalJdkProvider extends AbstractJdkProvider {
   @Nonnull
   @Override
   public File prepareJdkFolder() throws IOException {
-    final File javaHome = new File(this.mojo.getJavaHome());
-    if (!javaHome.isDirectory()) {
+    final File javaHome = this.mojo.findJavaHome();
+    if (javaHome == null) {
       throw new IOException("Can't find java folder for path: " + javaHome);
     }
 

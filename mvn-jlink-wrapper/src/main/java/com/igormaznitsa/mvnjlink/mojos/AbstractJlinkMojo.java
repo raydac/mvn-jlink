@@ -47,15 +47,6 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   private String javaHome = System.getProperty("java.home");
 
   @Nonnull
-  public String getJavaHome() {
-    return this.javaHome;
-  }
-
-  public void setJavaHome(@Nullable final String value) {
-    this.javaHome = ensureNonNull(value, System.getProperty("java.home"));
-  }
-
-  @Nonnull
   public Map<String, String> getProviderConfig() {
     return this.providerConfig;
   }
@@ -141,6 +132,16 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     }
     return result;
   }
+
+  @Nullable
+  public File findJavaHome() {
+    File result = new File(this.javaHome);
+    if (!result.isDirectory()) {
+      result = null;
+    }
+    return result;
+  }
+
 
   public abstract void onExecute() throws MojoExecutionException, MojoFailureException;
 }

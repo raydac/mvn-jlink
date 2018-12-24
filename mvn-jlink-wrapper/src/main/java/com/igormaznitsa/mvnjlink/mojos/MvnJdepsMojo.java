@@ -1,8 +1,6 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
-import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
-import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -12,8 +10,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.ProcessResult;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -21,29 +17,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.stream.Collectors.joining;
+import static com.igormaznitsa.mvnjlink.utils.SystemUtils.findJdkExecutable;
 
-@Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE)
-public class MvnJlinkMojo extends AbstractJlinkMojo {
+@Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE)
+public class MvnJdepsMojo extends AbstractJlinkMojo {
 
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
-
-  @Parameter(name = "addModules")
-  private List<String> addModules = new ArrayList<>();
-
-  @Parameter(name = "output", required = true)
-  private String output;
-
-  @Nonnull
-  @MustNotContainNull
-  public List<String> getOptions() {
-    return this.options;
-  }
-
-  public void setOptions(@Nullable @MustNotContainNull final List<String> value) {
-    this.options = GetUtils.ensureNonNull(value, new ArrayList<>());
-  }
 
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
@@ -54,35 +34,16 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     }
 
     final File jdkFolder = findJavaHome();
-    final File exeJlink;
+    final File exeJdeps;
     try {
-      exeJlink = SystemUtils.findJdkExecutable(jdkFolder, "jlink");
+      exeJdeps = findJdkExecutable(jdkFolder, "jdeps");
     } catch (IOException ex) {
-      throw new MojoExecutionException("Can't find jlink utility", ex);
-    }
-
-    final String joinedAddModules = this.addModules.stream().map(String::trim).collect(joining(","));
-
-    final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
-
-    final int indexOptions = commandLineOptions.indexOf("--add-modules");
-    if (indexOptions < 0) {
-      if (joinedAddModules.isEmpty()) {
-        throw new MojoExecutionException("There are not provided modules to be added.");
-      }
-      commandLineOptions.add("--add-modules");
-      commandLineOptions.add(joinedAddModules);
-    } else {
-      if (!joinedAddModules.isEmpty()) {
-        commandLineOptions.set(indexOptions + 1, commandLineOptions.get(indexOptions + 1) + ',' + joinedAddModules);
-      }
+      throw new MojoExecutionException("Can't find jdeps utility", ex);
     }
 
     final List<String> commandLine = new ArrayList<>();
-    commandLine.add(exeJlink.getAbsolutePath());
-    commandLine.add("--output");
-    commandLine.add(Assertions.assertNotNull(this.output));
-    commandLine.addAll(commandLineOptions);
+    commandLine.add(exeJdeps.getAbsolutePath());
+    commandLine.addAll(this.options);
 
     this.getLog().debug("Command line: " + commandLine);
 
@@ -107,7 +68,8 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     } else {
       getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
       getLog().error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
-      throw new MojoFailureException("Jlink execution error code: " + executor.getExitValue());
+      throw new MojoFailureException("JDeps execution error code: " + executor.getExitValue());
     }
+
   }
 }
