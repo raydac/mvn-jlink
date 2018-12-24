@@ -21,6 +21,7 @@
 
   <modules>
     <module>mvn-jlink-wrapper</module>
+    <module>mvn-jlink-tests</module>
   </modules>
 
   <build>
