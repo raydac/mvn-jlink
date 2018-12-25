@@ -4,6 +4,7 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -19,12 +20,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.extractModuleNames;
 import static java.util.stream.Collectors.joining;
 
 @Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE)
 public class MvnJlinkMojo extends AbstractJlinkMojo {
+
+  @Parameter(name = "jdepsOut")
+  private String jdepsOut;
 
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
@@ -45,6 +51,23 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     this.options = GetUtils.ensureNonNull(value, new ArrayList<>());
   }
 
+  @Nullable
+  @MustNotContainNull
+  private List<String> getModulesFromJdepsFile() {
+    if (this.jdepsOut == null) {
+      return Collections.emptyList();
+    }
+
+    final File jdepsFile = new File(this.jdepsOut);
+
+    try {
+      return extractModuleNames(FileUtils.readFileToString(jdepsFile, Charset.defaultCharset()));
+    } catch (IOException ex) {
+      this.getLog().error("Can't read jdeps file:" + jdepsFile, ex);
+      return null;
+    }
+  }
+
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     try {
@@ -61,7 +84,17 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       throw new MojoExecutionException("Can't find jlink utility", ex);
     }
 
-    final String joinedAddModules = this.addModules.stream().map(String::trim).collect(joining(","));
+    final List<String> modulesFromJdeps = getModulesFromJdepsFile();
+    if (modulesFromJdeps == null) {
+      throw new MojoExecutionException("Can't get module list from jdeps file");
+    }
+
+    final List<String> totalModules = new ArrayList<>(modulesFromJdeps);
+    totalModules.addAll(this.addModules);
+
+    final String joinedAddModules = totalModules.stream().map(String::trim).collect(joining(","));
+
+    this.getLog().info("Modules: "+joinedAddModules);
 
     final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
 

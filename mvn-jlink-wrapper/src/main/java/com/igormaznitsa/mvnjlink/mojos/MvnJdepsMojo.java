@@ -1,7 +1,6 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
-import com.igormaznitsa.meta.common.utils.Assertions;
-import com.igormaznitsa.mvnjlink.utils.SystemUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -24,6 +23,9 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
 
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
+
+  @Parameter(name = "output", required = true)
+  private String output;
 
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
@@ -53,6 +55,7 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
     final ProcessResult executor;
     try {
       executor = new ProcessExecutor(commandLine)
+          .readOutput(true)
           .redirectOutput(consoleOut)
           .redirectError(consoleErr)
           .executeNoTimeout();
@@ -64,10 +67,32 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
     }
 
     if (executor.getExitValue() == 0) {
-      getLog().debug(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      final String text = new String(consoleOut.toByteArray(), Charset.defaultCharset());
+      final String error = new String(consoleErr.toByteArray(), Charset.defaultCharset());
+
+      this.getLog().debug(text);
+      this.getLog().debug(error);
+
+      if (text.isEmpty()) {
+        throw new MojoFailureException("JDEPS has generated empty text, check your JAR file, may be there are not classes!");
+      }
+
+      if (text.contains("Path does not exist: ")) {
+        this.getLog().error(text);
+        throw new MojoFailureException("Can't find file for analyzing");
+      }
+
+      if (this.output != null) {
+        final File file = new File(this.output);
+        try {
+          FileUtils.write(file, text, Charset.defaultCharset());
+        } catch (IOException ex) {
+          throw new MojoExecutionException("Can't write jdeps file: " + file, ex);
+        }
+      }
     } else {
-      getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
-      getLog().error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
+      this.getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      this.getLog().error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
       throw new MojoFailureException("JDeps execution error code: " + executor.getExitValue());
     }
 
