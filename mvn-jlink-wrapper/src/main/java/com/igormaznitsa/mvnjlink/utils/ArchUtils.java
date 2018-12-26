@@ -5,11 +5,9 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.examples.Archiver;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.logging.Log;
 
@@ -76,8 +74,7 @@ public final class ArchUtils {
       };
     } else {
       zipFile = null;
-      final InputStream in;
-      try  {
+      try {
         if (lowCaseArchiveName.endsWith(".tar.gz")) {
           logger.debug("Detected TAR.GZ archive");
 

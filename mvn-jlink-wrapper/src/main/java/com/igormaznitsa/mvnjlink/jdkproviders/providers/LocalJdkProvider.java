@@ -16,10 +16,10 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public File findJdkFolder(@Nonnull final Map<String,String> config) throws IOException {
+  public File findJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
     final File javaHome = this.mojo.findJavaHome();
     if (javaHome == null) {
-      throw new IOException("Can't find java folder for path: " + javaHome);
+      throw new IOException("Can't find Java home folder");
     }
 
     try {

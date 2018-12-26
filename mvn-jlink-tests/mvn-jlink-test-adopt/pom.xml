@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.igormaznitsa</groupId>
+        <artifactId>mvn-jlink-tests</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mvn-jlink-test-adopt</artifactId>
+    <packaging>jar</packaging>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.igormaznitsa</groupId>
+                <artifactId>mvn-jlink-wrapper</artifactId>
+                <executions>
+                    <execution>
+                        <id>call-jdeps</id>
+                        <goals>
+                            <goal>jdeps</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.directory}${file.separator}jdeps.out</output>
+                            <options>
+                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>call-jlink</id>
+                        <goals>
+                            <goal>jlink</goal>
+                        </goals>
+                        <configuration>
+                            <provider>ADOPT</provider>
+                            <providerConfig>
+                                <release>jdk-11+28</release>
+                                <os>linux</os>
+                                <arch>x64</arch>
+                                <type>jdk</type>
+                                <impl>hotspot</impl>
+                            </providerConfig>
+                            <cacheFolder>${project.build.directory}${file.separator}jlinkcache</cacheFolder>
+                            <jdepsOut>${project.build.directory}${file.separator}jdeps.out</jdepsOut>
+                            <output>${project.build.directory}${file.separator}preparedJDK</output>
+                            <options>
+                                <option>--compress=2</option>
+                                <option>--no-header-files</option>
+                                <option>--no-man-pages</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>check-folder-exist</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.build.directory}${file.separator}preparedJDK</file>
+                                    </files>
+                                </requireFilesExist>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
