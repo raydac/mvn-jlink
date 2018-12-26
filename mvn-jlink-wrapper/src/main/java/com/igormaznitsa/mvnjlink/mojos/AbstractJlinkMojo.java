@@ -16,17 +16,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
-
-import static com.igormaznitsa.meta.common.utils.GetUtils.ensureNonNull;
 
 public abstract class AbstractJlinkMojo extends AbstractMojo {
 
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
 
-  @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlink", name = "storeFolder")
-  private String storeFolder = "";
+  @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "cacheFolder")
+  private String cacheFolder = System.getProperty("user.home") + File.separator + ".mvnJlinkCache";
 
   @Parameter(name = "skip", defaultValue = "false")
   private boolean skip;
@@ -51,17 +48,9 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     return this.providerConfig;
   }
 
-  public void setProviderConfig(@Nullable final Map<String, String> value) {
-    this.providerConfig = ensureNonNull(value, new HashMap<>());
-  }
-
   @Nonnull
-  public String getStoreFolder() {
-    return ensureNonNull(this.storeFolder, "");
-  }
-
-  public void setStoreFolder(@Nullable final String value) {
-    this.storeFolder = ensureNonNull(value, "");
+  public String getCacheFolder() {
+    return this.cacheFolder;
   }
 
   @Nonnull
@@ -69,35 +58,17 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     return this.provider;
   }
 
-  public void setProvider(@Nullable final JdkProviderId value) {
-    this.provider = ensureNonNull(value, JdkProviderId.LOCAL);
-  }
-
   @Nullable
   public ProxySettings getProxy() {
     return this.proxy;
   }
 
-  public void setProxy(@Nullable final ProxySettings value) {
-    this.proxy = value;
-  }
-
-
   public boolean isDisableSSLcheck() {
     return this.disableSSLcheck;
   }
 
-  public void setDisableSSLcheck(final boolean value) {
-    this.disableSSLcheck = value;
-  }
-
-
   public boolean isSkip() {
     return this.skip;
-  }
-
-  public void setSkip(final boolean value) {
-    this.skip = value;
   }
 
   @Nonnull
@@ -114,21 +85,27 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   }
 
   @Nonnull
-  public File prepareStoreFolder() throws IOException {
-    final String storeFolder = this.getStoreFolder();
+  public File prepareAndGetCacheFolder() throws IOException {
+    final String storeFolder = this.getCacheFolder();
+
     if (storeFolder.trim().isEmpty()) {
-      throw new IOException("Path to the store folder is not provided");
+      throw new IOException("Path to the cache folder is not provided");
     }
+
     final File result = new File(storeFolder);
+
     if (!result.isDirectory() && !result.mkdirs()) {
-      throw new IOException("Can't create the store folder: " + result);
+      throw new IOException("Can't create the cache folder: " + result);
     }
+
     final Path asPath = result.toPath();
+
     if (!Files.isReadable(asPath)) {
-      throw new IOException("Can't read from the store folder, check rights: " + result);
+      throw new IOException("Can't read from the cache folder, check rights: " + result);
     }
+
     if (!Files.isWritable(asPath)) {
-      throw new IOException("Can't write to the store folder, check rights: " + result);
+      throw new IOException("Can't write to the cache folder, check rights: " + result);
     }
     return result;
   }

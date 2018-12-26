@@ -1,7 +1,6 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
-import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import org.apache.commons.io.FileUtils;
@@ -71,10 +70,12 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     try {
-      this.getProvider().makeInstance(this).prepareJdkFolder();
+      this.getProvider().makeInstance(this).findJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Can't prepare JDK provider", ex);
     }
+
+    final File outputFolder = new File(this.output);
 
     final File jdkFolder = findJavaHome();
     final File exeJlink;
@@ -94,7 +95,7 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
 
     final String joinedAddModules = totalModules.stream().map(String::trim).collect(joining(","));
 
-    this.getLog().info("Modules: "+joinedAddModules);
+    this.getLog().info("Modules: " + joinedAddModules);
 
     final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
 
@@ -111,10 +112,19 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       }
     }
 
+    if (outputFolder.isDirectory()) {
+      getLog().warn("Deleting existing output folder: " + outputFolder);
+      try {
+        FileUtils.deleteDirectory(outputFolder);
+      } catch (IOException ex) {
+        throw new MojoExecutionException("Can't delete output folder: " + outputFolder, ex);
+      }
+    }
+
     final List<String> commandLine = new ArrayList<>();
     commandLine.add(exeJlink.getAbsolutePath());
     commandLine.add("--output");
-    commandLine.add(Assertions.assertNotNull(this.output));
+    commandLine.add(outputFolder.getAbsolutePath());
     commandLine.addAll(commandLineOptions);
 
     this.getLog().debug("Command line: " + commandLine);

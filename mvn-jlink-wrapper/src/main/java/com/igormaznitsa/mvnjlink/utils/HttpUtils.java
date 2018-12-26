@@ -30,7 +30,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.protocol.HttpContext;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
 import javax.annotation.Nonnull;
@@ -123,8 +122,10 @@ public final class HttpUtils {
   }
 
   @Nonnull
-  public static HttpClient makeHttpClient(@Nonnull Log logger, @Nullable final ProxySettings proxy, final boolean disableSslCheck) throws MojoExecutionException {
+  public static HttpClient makeHttpClient(@Nonnull Log logger, @Nullable final ProxySettings proxy, final boolean disableSslCheck) throws IOException {
     final HttpClientBuilder builder = HttpClients.custom();
+
+    builder.disableCookieManagement();
 
     if (proxy != null) {
       if (proxy.hasCredentials()) {
@@ -211,7 +212,7 @@ public final class HttpUtils {
 
         logger.warn("SSL certificate check has been disabled");
       } catch (final Exception ex) {
-        throw new MojoExecutionException("Can't disable SSL certificate check", ex);
+        throw new IOException("Can't disable SSL certificate check", ex);
       }
     }
     return builder.build();

@@ -19,9 +19,17 @@
     <maven.version>3.3.9</maven.version>
   </properties>
 
+  <profiles>
+    <profile>
+      <id>it</id>
+      <modules>
+        <module>mvn-jlink-tests</module>
+      </modules>
+    </profile>
+  </profiles>
+
   <modules>
     <module>mvn-jlink-wrapper</module>
-    <module>mvn-jlink-tests</module>
   </modules>
 
   <build>

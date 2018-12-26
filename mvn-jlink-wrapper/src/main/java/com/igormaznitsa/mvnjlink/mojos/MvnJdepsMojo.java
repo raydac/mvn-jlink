@@ -30,7 +30,7 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     try {
-      this.getProvider().makeInstance(this).prepareJdkFolder();
+      this.getProvider().makeInstance(this).findJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Can't prepare JDK provider", ex);
     }

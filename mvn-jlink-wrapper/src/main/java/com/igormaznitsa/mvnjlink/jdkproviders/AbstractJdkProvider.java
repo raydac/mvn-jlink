@@ -3,12 +3,11 @@ package com.igormaznitsa.mvnjlink.jdkproviders;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
-import static java.util.Locale.ENGLISH;
 
 public abstract class AbstractJdkProvider {
 
@@ -18,23 +17,32 @@ public abstract class AbstractJdkProvider {
     this.mojo = assertNotNull(mojo);
   }
 
-  public static String makeCachedJdkFolderName(
-      @Nonnull final JdkProviderId providerId,
-      @Nonnull final String releaseName,
-      @Nonnull final String type,
-      @Nonnull final String os,
-      @Nonnull final String arch,
-      @Nullable final String impl
-  ) {
-    return String.format("%s_%s_%s_%s_%s_%s",
-        providerId.name(),
-        releaseName.toLowerCase(ENGLISH).trim(),
-        type.toLowerCase(ENGLISH).trim(),
-        os.toLowerCase(ENGLISH).trim(),
-        arch.toLowerCase(ENGLISH).trim(),
-        (impl == null || impl.trim().isEmpty() ? "unkn" : impl.toLowerCase(ENGLISH).trim())
-    );
+  @Nonnull
+  protected static String escapeFileName(@Nonnull final String text) {
+    final StringBuilder result = new StringBuilder(text.length());
+    for (final char c : text.toCharArray()) {
+      switch (c) {
+        case '\\':
+        case '/':
+        case ':':
+        case '*':
+        case '?':
+        case '\"':
+        case '<':
+        case '>':
+        case '|':
+          result.append('.');
+          break;
+        default: {
+          if (!(Character.isWhitespace(c) || Character.isISOControl(c))) {
+            result.append(c);
+          }
+        }
+        break;
+      }
+    }
+    return result.toString();
   }
 
-  public abstract File prepareJdkFolder() throws IOException;
+  public abstract File findJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
 }

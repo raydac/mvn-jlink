@@ -5,9 +5,11 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.examples.Archiver;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.logging.Log;
 
@@ -58,6 +60,7 @@ public final class ArchUtils {
       logger.debug("Detected ZIP archive");
       zipFile = new ZipFile(archiveFile);
       archiveInputStream = null;
+
       entryGetter = new ArchEntryGetter() {
         private final Enumeration<ZipArchiveEntry> iterator = zipFile.getEntries();
 
@@ -73,22 +76,25 @@ public final class ArchUtils {
       };
     } else {
       zipFile = null;
-      try (final InputStream in = new BufferedInputStream(new FileInputStream(archiveFile))) {
+      final InputStream in;
+      try  {
         if (lowCaseArchiveName.endsWith(".tar.gz")) {
           logger.debug("Detected TAR.GZ archive");
-          archiveInputStream = new TarArchiveInputStream(new GZIPInputStream(in));
+
+          archiveInputStream = new TarArchiveInputStream(new GZIPInputStream(new BufferedInputStream(new FileInputStream(archiveFile))));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
             @Override
             public ArchiveEntry getNextEntry() throws IOException {
-              return ((TarArchiveInputStream) archiveInputStream).getNextTarEntry();
+              final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) archiveInputStream;
+              return tarInputStream.getNextTarEntry();
             }
           };
 
         } else {
           logger.debug("Detected OTHER archive");
-          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(in);
+          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(new BufferedInputStream(new FileInputStream(archiveFile)));
           logger.debug("Created archive stream : " + archiveInputStream.getClass().getName());
 
           entryGetter = new ArchEntryGetter() {
@@ -116,6 +122,8 @@ public final class ArchUtils {
         if (entry == null) {
           break;
         }
+        logger.debug("Unpacking entry: " + entry.getName());
+
         final String normalizedPath = normalize(entry.getName(), true);
 
         logger.debug("Detected archive entry : " + normalizedPath);

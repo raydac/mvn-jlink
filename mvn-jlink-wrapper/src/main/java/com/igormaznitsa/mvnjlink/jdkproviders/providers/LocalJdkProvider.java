@@ -7,6 +7,7 @@ import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 public class LocalJdkProvider extends AbstractJdkProvider {
   public LocalJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
@@ -15,7 +16,7 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public File prepareJdkFolder() throws IOException {
+  public File findJdkFolder(@Nonnull final Map<String,String> config) throws IOException {
     final File javaHome = this.mojo.findJavaHome();
     if (javaHome == null) {
       throw new IOException("Can't find java folder for path: " + javaHome);
