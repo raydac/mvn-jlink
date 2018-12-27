@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,8 +23,8 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
 
-  @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "cacheFolder")
-  private String cacheFolder = System.getProperty("user.home") + File.separator + ".mvnJlinkCache";
+  @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
+  private String jdkCachePath = System.getProperty("user.home") + File.separator + ".mvnJlinkJdkCache";
 
   @Parameter(name = "skip", defaultValue = "false")
   private boolean skip;
@@ -40,8 +41,8 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   @Parameter(name = "providerConfig")
   private Map<String, String> providerConfig = new HashMap<>();
 
-  @Parameter(name = "javaHome", defaultValue = "${java.home}")
-  private String javaHome = System.getProperty("java.home");
+  @Parameter(name = "baseJdkHome", defaultValue = "${java.home}")
+  private String baseJdkHome = System.getProperty("java.home");
 
   @Nonnull
   public Map<String, String> getProviderConfig() {
@@ -49,8 +50,8 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   }
 
   @Nonnull
-  public String getCacheFolder() {
-    return this.cacheFolder;
+  public String getJdkCachePath() {
+    return this.jdkCachePath;
   }
 
   @Nonnull
@@ -85,35 +86,33 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   }
 
   @Nonnull
-  public File prepareAndGetCacheFolder() throws IOException {
-    final String storeFolder = this.getCacheFolder();
+  public Path findJdkCacheFolder() throws IOException {
+    final String storeFolder = this.getJdkCachePath();
 
     if (storeFolder.trim().isEmpty()) {
       throw new IOException("Path to the cache folder is not provided");
     }
 
-    final File result = new File(storeFolder);
+    final Path result = Paths.get(storeFolder);
 
-    if (!result.isDirectory() && !result.mkdirs()) {
-      throw new IOException("Can't create the cache folder: " + result);
+    if (!Files.isDirectory(result)) {
+      Files.createDirectories(result);
     }
 
-    final Path asPath = result.toPath();
-
-    if (!Files.isReadable(asPath)) {
+    if (!Files.isReadable(result)) {
       throw new IOException("Can't read from the cache folder, check rights: " + result);
     }
 
-    if (!Files.isWritable(asPath)) {
+    if (!Files.isWritable(result)) {
       throw new IOException("Can't write to the cache folder, check rights: " + result);
     }
     return result;
   }
 
   @Nullable
-  public File findJavaHome() {
-    File result = new File(this.javaHome);
-    if (!result.isDirectory()) {
+  public Path findBaseJdkHomeFolder() {
+    Path result = Paths.get(this.baseJdkHome);
+    if (!Files.isDirectory(result)) {
       result = null;
     }
     return result;

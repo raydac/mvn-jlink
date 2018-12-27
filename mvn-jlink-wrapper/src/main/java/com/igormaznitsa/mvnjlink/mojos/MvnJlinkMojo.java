@@ -2,10 +2,10 @@ package com.igormaznitsa.mvnjlink.mojos;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
-import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -15,15 +15,22 @@ import org.zeroturnaround.exec.ProcessResult;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static com.igormaznitsa.mvnjlink.utils.StringUtils.extractModuleNames;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.extractJdepsModuleNames;
+import static com.igormaznitsa.mvnjlink.utils.SystemUtils.findJdkExecutable;
+import static java.nio.file.Files.isDirectory;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 @Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE)
 public class MvnJlinkMojo extends AbstractJlinkMojo {
@@ -50,52 +57,53 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     this.options = GetUtils.ensureNonNull(value, new ArrayList<>());
   }
 
-  @Nullable
+  @Nonnull
   @MustNotContainNull
-  private List<String> getModulesFromJdepsFile() {
-    if (this.jdepsOut == null) {
+  private List<String> getModulesFromJdepsOut(@Nullable final Optional<Path> jdepsOutPath) throws MojoExecutionException {
+    if (jdepsOutPath.isPresent()) {
+      final Path jdepsFile = Paths.get(this.jdepsOut);
+
+      try {
+        return extractJdepsModuleNames(FileUtils.readFileToString(jdepsFile.toFile(), Charset.defaultCharset()));
+      } catch (IOException ex) {
+        throw new MojoExecutionException("Can't read jdeps out file:" + jdepsFile, ex);
+      }
+    } else {
       return Collections.emptyList();
-    }
-
-    final File jdepsFile = new File(this.jdepsOut);
-
-    try {
-      return extractModuleNames(FileUtils.readFileToString(jdepsFile, Charset.defaultCharset()));
-    } catch (IOException ex) {
-      this.getLog().error("Can't read jdeps file:" + jdepsFile, ex);
-      return null;
     }
   }
 
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
+    final Log log = this.getLog();
+
     try {
-      this.getProvider().makeInstance(this).findJdkFolder(this.getProviderConfig());
+      this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
-      throw new MojoExecutionException("Can't prepare JDK provider", ex);
+      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
     }
 
-    final File outputFolder = new File(this.output);
+    final Path outputPath = Paths.get(this.output);
 
-    final File jdkFolder = findJavaHome();
-    final File exeJlink;
+    final Path homeJdkPath = findBaseJdkHomeFolder();
+    if (homeJdkPath == null) {
+      throw new MojoExecutionException("Can't find home JDK folder, may be it is non defined");
+    }
+
+    final Path execJlinkPath;
     try {
-      exeJlink = SystemUtils.findJdkExecutable(jdkFolder, "jlink");
+      execJlinkPath = findJdkExecutable(homeJdkPath, "jlink");
     } catch (IOException ex) {
       throw new MojoExecutionException("Can't find jlink utility", ex);
     }
 
-    final List<String> modulesFromJdeps = getModulesFromJdepsFile();
-    if (modulesFromJdeps == null) {
-      throw new MojoExecutionException("Can't get module list from jdeps file");
-    }
-
+    final List<String> modulesFromJdeps = getModulesFromJdepsOut(ofNullable(this.jdepsOut == null ? null : Paths.get(this.jdepsOut)));
     final List<String> totalModules = new ArrayList<>(modulesFromJdeps);
     totalModules.addAll(this.addModules);
 
     final String joinedAddModules = totalModules.stream().map(String::trim).collect(joining(","));
 
-    this.getLog().info("Modules: " + joinedAddModules);
+    log.info("Add modules : " + joinedAddModules);
 
     final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
 
@@ -112,22 +120,24 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       }
     }
 
-    if (outputFolder.isDirectory()) {
-      getLog().warn("Deleting existing output folder: " + outputFolder);
+    if (isDirectory(outputPath)) {
+      log.warn("Deleting existing output folder: " + outputPath);
       try {
-        FileUtils.deleteDirectory(outputFolder);
+        deleteDirectory(outputPath.toFile());
       } catch (IOException ex) {
-        throw new MojoExecutionException("Can't delete output folder: " + outputFolder, ex);
+        throw new MojoExecutionException("Can't delete output folder: " + outputPath, ex);
       }
     }
 
     final List<String> commandLine = new ArrayList<>();
-    commandLine.add(exeJlink.getAbsolutePath());
+    commandLine.add(execJlinkPath.toString());
     commandLine.add("--output");
-    commandLine.add(outputFolder.getAbsolutePath());
+    commandLine.add(outputPath.toString());
     commandLine.addAll(commandLineOptions);
 
-    this.getLog().debug("Command line: " + commandLine);
+    this.getLog().info("CLI arguments: " + commandLine.stream().skip(1).collect(Collectors.joining(" ")));
+
+    log.debug("Command line: " + commandLine);
 
     final ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
     final ByteArrayOutputStream consoleErr = new ByteArrayOutputStream();
@@ -146,11 +156,12 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     }
 
     if (executor.getExitValue() == 0) {
-      getLog().debug(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      log.debug(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      log.info("Execution completed successfully, the result folder is " + outputPath);
     } else {
-      getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
-      getLog().error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
-      throw new MojoFailureException("Jlink execution error code: " + executor.getExitValue());
+      log.info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      log.error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
+      throw new MojoFailureException("jlink execution error code: " + executor.getExitValue());
     }
   }
 }

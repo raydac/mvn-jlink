@@ -4,8 +4,7 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.FileUtils;
+import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -15,10 +14,11 @@ import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,9 +30,13 @@ import java.util.regex.Pattern;
 
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
+import static java.nio.file.Files.*;
 import static java.util.Locale.ENGLISH;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
+import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.io.IOUtils.copy;
 
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
@@ -43,69 +47,64 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   }
 
   @Nonnull
-  private static String calcSha256ForFile(@Nonnull final File file) throws IOException {
-    try (final FileInputStream in = new FileInputStream(file)) {
-      return DigestUtils.sha256Hex(in);
+  private static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
+    try (final InputStream in = newInputStream(file)) {
+      return sha256Hex(in);
     }
   }
 
+  private static void assertAttributes(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... attributes) {
+    final Optional<String> notFoundAttribute = of(attributes).filter(x -> !attrMap.containsKey(x)).findAny();
+    if (notFoundAttribute.isPresent()) {
+      throw new IllegalArgumentException(String.format("Attribute '%s' must be presented", notFoundAttribute.get()));
+    }
+  }
+
+  @Nonnull
   @Override
-  public File findJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
+  public Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    final String release = config.get("release");
-    final String os = config.get("os");
-    final String arch = config.get("arch");
-    final String type = config.get("type");
-    final String impl = config.get("impl");
-    final String listUrl = config.get("listUrl");
+    assertAttributes(config, "release", "os", "arch", "type", "impl");
 
-    if (release == null) {
-      throw new IOException("'release' attribute is not defined");
-    }
-    if (os == null) {
-      throw new IOException("'os' attribute is not defined");
-    }
-    if (arch == null) {
-      throw new IOException("'arch' attribute is not defined");
-    }
-    if (type == null) {
-      throw new IOException("'type' attribute is not defined");
-    }
-    if (impl == null) {
-      throw new IOException("'impl' attribute is not defined");
-    }
+    final String jdkRelease = config.get("release");
+    final String jdkOs = config.get("os");
+    final String jdkArch = config.get("arch");
+    final String jdkType = config.get("type");
+    final String jdkImpl = config.get("impl");
+    final String jdkReleaseListUrl = config.get("releaseListUrl");
+    final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
-    final String jdkFolderName = String.format(
+    final String cachedJdkFolderName = String.format(
         "ADOPT_%s_%s_%s_%s",
-        escapeFileName(release.toLowerCase(ENGLISH).trim()),
-        escapeFileName(os.toLowerCase(ENGLISH).trim()),
-        escapeFileName(arch.toLowerCase(ENGLISH).trim()),
-        escapeFileName(impl.toLowerCase(ENGLISH).trim())
+        escapeFileName(jdkRelease.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkOs.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkArch.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkImpl.toLowerCase(ENGLISH).trim())
     );
 
-    log.info("looking for '" + jdkFolderName + "' in cache");
-    final File cacheFolder = this.mojo.prepareAndGetCacheFolder();
+    log.info("looking for '" + cachedJdkFolderName + "' in cache");
+    final Path cachePath = this.mojo.findJdkCacheFolder();
 
-    final File jdkFolder = new File(cacheFolder, jdkFolderName);
-    log.info("Cache folder: " + cacheFolder);
+    final Path cachedJdkFolderPath = cachePath.resolve(cachedJdkFolderName);
+    log.info("Cache folder: " + cachePath);
 
-    if (jdkFolder.isDirectory()) {
-      log.info("Found cached sdk: " + jdkFolderName);
-      return jdkFolder;
+    if (isDirectory(cachedJdkFolderPath)) {
+      log.info("Found cached JDK: " + cachedJdkFolderName);
+      return cachedJdkFolderPath;
     } else {
-      log.info("Can't find cached sdk: " + jdkFolderName);
+      log.info("Can't find cached sdk: " + cachedJdkFolderName);
 
       final String adoptApiUri;
-      if (listUrl == null) {
-        final Matcher matcher = RELEASE.matcher(release.trim().toLowerCase(ENGLISH));
+      if (jdkReleaseListUrl == null) {
+        final Matcher matcher = RELEASE.matcher(jdkRelease.trim().toLowerCase(ENGLISH));
         if (matcher.find()) {
           adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + matcher.group(2);
         } else {
-          throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + release);
+          throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + jdkRelease);
         }
       } else {
-        adoptApiUri = listUrl;
+        adoptApiUri = jdkReleaseListUrl;
       }
 
       log.debug("Adopt OpenJdk API URL: " + adoptApiUri);
@@ -129,47 +128,48 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       }
 
       final ReleaseList releaseList = new ReleaseList(jsonReleaseArray);
-      final ReleaseList.Release foundRelease = releaseList.findRelease(release);
+      final ReleaseList.Release foundRelease = releaseList.findRelease(jdkRelease);
 
       if (foundRelease == null) {
-        log.error("Can't find release : " + release);
+        log.error("Can't find release : " + jdkRelease);
         log.error(releaseList.makeListOfAllReleases());
-        throw new IOException("Can't find appropriate JDK release in provided list for '" + release + '\'');
+        throw new IOException("Can't find appropriate JDK release in provided list for '" + jdkRelease + '\'');
       } else {
-        log.debug("Found release for name : " + release);
+        log.debug("Found release for name : " + jdkRelease);
       }
 
-      final ReleaseList.Release.Binary foundBinary = releaseList.findBinary(foundRelease, os, arch, type, impl);
+      final ReleaseList.Release.Binary foundReleaseBinary = releaseList.findBinary(foundRelease, jdkOs, jdkArch, jdkType, jdkImpl);
 
-      if (foundBinary == null) {
-        log.error("Can't find release binary : " + release);
+      if (foundReleaseBinary == null) {
+        log.error("Can't find release binary : " + jdkRelease);
         log.error(releaseList.makeListOfAllReleases());
-        throw new IOException("Can't find appropriate JDK release binary in provided list for '" + release + '\'');
+        throw new IOException("Can't find appropriate JDK release binary in provided list for '" + jdkRelease + '\'');
       } else {
-        log.debug("Found release binary: " + foundBinary);
-        downloadAndUnpack(httpClient, foundBinary, cacheFolder, jdkFolder, foundRelease.releaseName);
+        log.debug("Found release binary: " + foundReleaseBinary);
+        downloadAndUnpack(httpClient, foundReleaseBinary, cachePath, cachedJdkFolderPath, foundRelease.releaseName, keepArchiveFile);
       }
     }
-    return jdkFolder;
+    return cachedJdkFolderPath;
   }
 
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nonnull final ReleaseList.Release.Binary binary,
-      @Nonnull final File cacheFolder,
-      @Nonnull final File targetFolder,
-      @Nonnull final String archiveRootFolder
+      @Nonnull final Path cacheFolder,
+      @Nonnull final Path targetFolder,
+      @Nonnull final String archiveRootFolder,
+      final boolean keepArchiveFile
   ) throws IOException {
 
     final Log log = this.mojo.getLog();
 
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
-      final AtomicReference<String> hash = new AtomicReference<>();
+      final AtomicReference<String> hashRef = new AtomicReference<>();
       try {
         doGetRequest(client, binary.linkHash, this.mojo.getProxy(), x -> {
           try {
-            hash.set(EntityUtils.toString(x));
+            hashRef.set(EntityUtils.toString(x));
           } catch (IOException ex) {
             throw new RuntimeException(ex);
           }
@@ -181,36 +181,28 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         throw ex;
       }
 
-      final Matcher hashMatcher = compile("([0-9a-fA-F]+)\\s+(.+)").matcher(hash.get());
-      if (hashMatcher.find()) {
-        digestCode = hashMatcher.group(1);
-      } else {
-        throw new IOException("Can't parse hash code: " + hash.get());
-      }
-
+      digestCode = StringUtils.extractFileHash(hashRef.get());
       log.info("Expected archive hash: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
       digestCode = "";
     }
 
-    final File archiveFile = new File(cacheFolder, binary.binaryName);
+    final Path downloadArchiveFile = cacheFolder.resolve(binary.binaryName);
 
     boolean doLoadArchive = true;
 
-    if (archiveFile.isFile()) {
-      log.info("Detected loaded archive: " + archiveFile.getName());
+    if (isRegularFile(downloadArchiveFile)) {
+      log.info("Detected loaded archive: " + downloadArchiveFile.getFileName());
 
       if (digestCode.isEmpty()) {
         log.warn("Because digest is undefined, the existing archive will be deleted!");
-        if (!archiveFile.delete()) {
-          throw new IOException("Detected cached archive '" + archiveFile.getName() + "', which can't be deleted");
+        if (!Files.deleteIfExists(downloadArchiveFile)) {
+          throw new IOException("Detected cached archive '" + downloadArchiveFile.getFileName() + "', which can't be deleted");
         }
-      } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(archiveFile))) {
+      } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(downloadArchiveFile))) {
         log.warn("Calculated hash for found archive is wrong, the archive will be reloaded!");
-        if (!archiveFile.delete()) {
-          throw new IOException("Detected cached archive '" + archiveFile.getName() + "', which can't be deleted");
-        }
+        delete(downloadArchiveFile);
       } else {
         log.info("Found archive hash is OK");
         doLoadArchive = false;
@@ -220,7 +212,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     if (doLoadArchive) {
       log.info(String.format("Loading archive, %d kB : %s", binary.size / 1024L, binary.link));
 
-      final String archiveHash = getArchiveAndSave(client, binary.link, archiveFile);
+      final String archiveHash = getArchiveAndSave(client, binary.link, downloadArchiveFile);
 
       log.info("Archive has been loaded successfuly, hash is " + archiveHash);
 
@@ -237,29 +229,43 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       log.info("Archive loading is skipped");
     }
 
-    if (targetFolder.isDirectory()) {
+    if (isDirectory(targetFolder)) {
       log.info("Detected existing target folder, deleting it: " + targetFolder);
-      FileUtils.deleteDirectory(targetFolder);
+      deleteDirectory(targetFolder.toFile());
     }
 
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), archiveFile, targetFolder, archiveRootFolder);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), downloadArchiveFile, targetFolder, archiveRootFolder);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRootFolder);
     }
-    log.info("Archive has been unpacked, extracted " + numberOfUnpackedFiles + " files");
+    log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
+
+    if (keepArchiveFile) {
+      log.info("Keeping archive file in cache: " + downloadArchiveFile);
+    } else {
+      log.info("Deleting archive: " + downloadArchiveFile);
+      delete(downloadArchiveFile);
+    }
   }
 
   @Nonnull
-  private String getArchiveAndSave(final HttpClient client, final String link, final File file) throws IOException {
-    doGetRequest(client, link, this.mojo.getProxy(), httpEntity -> {
-      try {
-        try (final FileOutputStream fileOutStream = new FileOutputStream(file)) {
-          copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
+  private String getArchiveAndSave(@Nonnull final HttpClient client, @Nonnull final String link, @Nonnull final Path file) throws IOException {
+    try {
+      doGetRequest(client, link, this.mojo.getProxy(), httpEntity -> {
+        try {
+          try (final OutputStream fileOutStream = Files.newOutputStream(file)) {
+            copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
+          }
+        } catch (Exception ex) {
+          throw new RuntimeException("Error during downloading", ex);
         }
-      } catch (Exception ex) {
-        throw new RuntimeException("Error during downloading", ex);
+      }, "application/x-gzip", "application/zip", "application/gzip");
+    } catch (RuntimeException ex) {
+      if (ex.getCause() instanceof IOException) {
+        throw (IOException) ex.getCause();
       }
-    }, "application/x-gzip", "application/zip", "application/gzip");
+      throw ex;
+    }
     return calcSha256ForFile(file);
   }
 
@@ -318,7 +324,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
       @Nonnull
       @MustNotContainNull
-      public List<String> toStringList() {
+      private List<String> toStringList() {
         final List<String> result = new ArrayList<>();
         this.binaries.forEach(x -> result.add(this.releaseName + " [" + x.toString() + ']'));
         return result;
@@ -352,12 +358,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         @Nonnull
         @Override
         public String toString() {
-          final StringBuilder buffer = new StringBuilder();
-          buffer.append("os='").append(this.os).append('\'');
-          buffer.append(',').append("arch='").append(this.arch).append('\'');
-          buffer.append(',').append("type='").append(this.type).append('\'');
-          buffer.append(',').append("impl='").append(this.impl).append('\'');
-          return buffer.toString();
+          return String.format("os='%s',arch='%s',type='%s',impl='%s'", this.os, this.arch, this.type, this.impl);
         }
       }
 

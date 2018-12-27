@@ -5,8 +5,8 @@ import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class LocalJdkProvider extends AbstractJdkProvider {
@@ -16,10 +16,10 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public File findJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
-    final File javaHome = this.mojo.findJavaHome();
+  public Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
+    final Path javaHome = this.mojo.findBaseJdkHomeFolder();
     if (javaHome == null) {
-      throw new IOException("Can't find Java home folder");
+      throw new IOException("Can't find Java defined home folder");
     }
 
     try {

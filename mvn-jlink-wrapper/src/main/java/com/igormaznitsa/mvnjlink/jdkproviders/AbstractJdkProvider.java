@@ -3,8 +3,8 @@ package com.igormaznitsa.mvnjlink.jdkproviders;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
@@ -44,5 +44,6 @@ public abstract class AbstractJdkProvider {
     return result.toString();
   }
 
-  public abstract File findJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
+  @Nonnull
+  public abstract Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
 }

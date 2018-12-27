@@ -1,8 +1,8 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -13,10 +13,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.igormaznitsa.mvnjlink.utils.SystemUtils.findJdkExecutable;
+import static org.apache.commons.io.FileUtils.write;
 
 @Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE)
 public class MvnJdepsMojo extends AbstractJlinkMojo {
@@ -29,32 +32,36 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
 
   @Override
   public void onExecute() throws MojoExecutionException, MojoFailureException {
+    final Log log = this.getLog();
+
     try {
-      this.getProvider().makeInstance(this).findJdkFolder(this.getProviderConfig());
+      this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
-      throw new MojoExecutionException("Can't prepare JDK provider", ex);
+      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
     }
 
-    final File jdkFolder = findJavaHome();
-    final File exeJdeps;
+    final Path baseJdkHomeFolder = findBaseJdkHomeFolder();
+    log.info("Base JDK home folder: " + baseJdkHomeFolder);
+
+    final Path execJdepsPath;
     try {
-      exeJdeps = findJdkExecutable(jdkFolder, "jdeps");
+      execJdepsPath = findJdkExecutable(baseJdkHomeFolder, "jdeps");
     } catch (IOException ex) {
       throw new MojoExecutionException("Can't find jdeps utility", ex);
     }
 
-    final List<String> commandLine = new ArrayList<>();
-    commandLine.add(exeJdeps.getAbsolutePath());
-    commandLine.addAll(this.options);
+    final List<String> cliArguments = new ArrayList<>();
+    cliArguments.add(execJdepsPath.toString());
+    cliArguments.addAll(this.options);
 
-    this.getLog().debug("Command line: " + commandLine);
+    log.info("CLI arguments: " + cliArguments.stream().skip(1).collect(Collectors.joining(" ")));
 
     final ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
     final ByteArrayOutputStream consoleErr = new ByteArrayOutputStream();
 
     final ProcessResult executor;
     try {
-      executor = new ProcessExecutor(commandLine)
+      executor = new ProcessExecutor(cliArguments)
           .readOutput(true)
           .redirectOutput(consoleOut)
           .redirectError(consoleErr)
@@ -63,38 +70,38 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
       throw new MojoExecutionException("Error during execution", ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new MojoFailureException("Execution interrupted", ex);
+      throw new MojoExecutionException("Execution interrupted", ex);
     }
 
     if (executor.getExitValue() == 0) {
       final String text = new String(consoleOut.toByteArray(), Charset.defaultCharset());
       final String error = new String(consoleErr.toByteArray(), Charset.defaultCharset());
 
-      this.getLog().debug(text);
-      this.getLog().debug(error);
+      log.debug(text);
+      log.debug(error);
 
       if (text.isEmpty()) {
-        throw new MojoFailureException("JDEPS has generated empty text, check your JAR file, may be there are not classes!");
+        throw new MojoFailureException("jdeps has generated empty output stream, check your jar, may be it is empty");
       }
 
       if (text.contains("Path does not exist: ")) {
-        this.getLog().error(text);
-        throw new MojoFailureException("Can't find file for analyzing");
+        log.error(text);
+        throw new MojoFailureException("A record that some path doesn't exist has been detected in out stream, it is recognized as error");
       }
 
       if (this.output != null) {
         final File file = new File(this.output);
         try {
-          FileUtils.write(file, text, Charset.defaultCharset());
+          write(file, text, Charset.defaultCharset());
         } catch (IOException ex) {
           throw new MojoExecutionException("Can't write jdeps file: " + file, ex);
         }
         log.info("Saved " + text.length() + " chars into file : " + file.getAbsolutePath());
       }
     } else {
-      this.getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
-      this.getLog().error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
-      throw new MojoFailureException("JDeps execution error code: " + executor.getExitValue());
+      log.info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+      log.error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
+      throw new MojoFailureException("Call of jdeps returns status code " + executor.getExitValue());
     }
 
   }

@@ -29,10 +29,10 @@ public final class StringUtils {
 
   @Nonnull
   @MustNotContainNull
-  public static List<String> extractModuleNames(@Nonnull final String text) {
+  public static List<String> extractJdepsModuleNames(@Nonnull final String text) {
     final List<String> result = new ArrayList<>();
     for (final String line : text.split("\\n")) {
-      final Matcher lineMatcher = MODULE_LINE.matcher(line);
+      final Matcher lineMatcher = PATTERN_MODULE_LINE.matcher(line);
       if (lineMatcher.find()) {
         final String moduleName = lineMatcher.group(2).trim();
         if (!moduleName.contains(" ")) {

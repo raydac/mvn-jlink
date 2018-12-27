@@ -54,7 +54,6 @@ public final class HttpUtils {
 
   }
 
-  @Nonnull
   public static void doGetRequest(
       @Nonnull final HttpClient client,
       @Nonnull final String urlLink,

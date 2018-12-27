@@ -15,6 +15,22 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>force-clean-target</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <directory>${project.build.directory}</directory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.igormaznitsa</groupId>
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
@@ -45,9 +61,10 @@
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
                             </providerConfig>
-                            <cacheFolder>${project.build.directory}${file.separator}jlinkcache</cacheFolder>
+                            <jdkCachePath>${project.build.directory}${file.separator}jlinkcache</jdkCachePath>
                             <jdepsOut>${project.build.directory}${file.separator}jdeps.out</jdepsOut>
                             <output>${project.build.directory}${file.separator}preparedJDK</output>
+                            <disableSSLcheck>true</disableSSLcheck>
                             <options>
                                 <option>--compress=2</option>
                                 <option>--no-header-files</option>

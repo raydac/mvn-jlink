@@ -1,8 +1,8 @@
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
-import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LocalJdkProvider;
+import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;

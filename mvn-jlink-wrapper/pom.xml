@@ -146,6 +146,13 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <configuration>
+                            <checkMayContainNull>true</checkMayContainNull>
+                            <checkNullable>true</checkNullable>
+                            <ignoreClasses>
+                                <ignore>com.igormaznitsa.mvnjlink.mojos.HelpMojo</ignore>
+                            </ignoreClasses>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

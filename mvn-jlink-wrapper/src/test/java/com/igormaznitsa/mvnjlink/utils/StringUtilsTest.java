@@ -8,13 +8,11 @@ import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import static org.junit.Assert.assertArrayEquals;
-
 public class StringUtilsTest {
   @Test
   public void testExtractModuleNames() throws Exception {
     final String text = IOUtils.resourceToString("jmods.out", StandardCharsets.UTF_8, StringUtilsTest.class.getClassLoader());
-    final List<String> modules = StringUtils.extractModuleNames(text);
+    final List<String> modules = StringUtils.extractJdepsModuleNames(text);
     assertArrayEquals(
         new String[] {
             "java.base",

@@ -1,9 +1,14 @@
 package com.igormaznitsa.mvnjlink.utils;
 
+import org.apache.maven.plugin.logging.Log;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public final class SystemUtils {
   private SystemUtils() {
@@ -11,15 +16,14 @@ public final class SystemUtils {
   }
 
   @Nonnull
-  public static File findJdkExecutable(final File jdkFolder, final String fileName) throws IOException {
+  public static Path findJdkExecutable(@Nonnull final Path jdkFolder, @Nonnull final String jdkExecutableFileName) throws IOException {
     final String extenstion = SystemUtils.findAppropriateBinExtension();
-    final String relativePath = "bin" + File.separatorChar + fileName + (extenstion.isEmpty() ? extenstion : '.' + extenstion);
 
-    final File result = new File(jdkFolder, relativePath);
-    if (!result.isFile()) {
+    final Path result = jdkFolder.resolve("bin" + File.separatorChar + jdkExecutableFileName + (extenstion.isEmpty() ? extenstion : '.' + extenstion));
+    if (!Files.isRegularFile(result)) {
       throw new IOException("Can't find file: " + result);
     }
-    if (!Files.isExecutable(result.toPath())) {
+    if (!Files.isExecutable(result)) {
       throw new IOException("Can't get execution rights: " + result);
     }
     return result;
