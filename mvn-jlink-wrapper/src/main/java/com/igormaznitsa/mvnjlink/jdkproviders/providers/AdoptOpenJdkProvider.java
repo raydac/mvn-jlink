@@ -5,7 +5,6 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
-import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
@@ -32,6 +31,7 @@ import java.util.regex.Pattern;
 
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
+import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
 import static java.nio.file.Files.*;
 import static java.util.Locale.ENGLISH;
 import static java.util.regex.Pattern.compile;
@@ -42,7 +42,7 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.io.IOUtils.copy;
 
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
-  private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9]+)(.*)$");
+  private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
 
   public AdoptOpenJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
     super(mojo);
@@ -105,7 +105,9 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       if (jdkReleaseListUrl == null) {
         final Matcher matcher = RELEASE.matcher(jdkRelease.trim().toLowerCase(ENGLISH));
         if (matcher.find()) {
-          adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + matcher.group(2);
+          final String jdkVersion = matcher.group(2);
+          log.debug("Extracted JDK version " + jdkVersion + " from " + jdkRelease);
+          adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + jdkVersion;
         } else {
           throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + jdkRelease);
         }
@@ -113,17 +115,21 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         adoptApiUri = jdkReleaseListUrl;
       }
 
-      log.debug("Adopt OpenJdk API URL: " + adoptApiUri);
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
+      log.debug("Adopt list OpenJdk API URL: " + adoptApiUri);
+      final HttpClient httpClient = makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
       final AtomicReference<String> text = new AtomicReference<>();
 
-      doGetRequest(httpClient, adoptApiUri, this.mojo.getProxy(), x -> {
-        try {
-          text.set(EntityUtils.toString(x));
-        } catch (IOException ex) {
-          throw new RuntimeException(ex);
-        }
-      }, "application/json");
+      try {
+        doGetRequest(httpClient, adoptApiUri, this.mojo.getProxy(), x -> {
+          try {
+            text.set(EntityUtils.toString(x));
+          } catch (IOException ex) {
+            throw new IORuntimeWrapperException(ex);
+          }
+        }, "application/json");
+      } catch (IORuntimeWrapperException ex) {
+        throw ex.getWrapped();
+      }
 
       final JSONArray jsonReleaseArray;
       try {
@@ -351,7 +357,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
             this.link = json.getString("binary_link");
             this.linkHash = json.has("checksum_link") ? json.getString("checksum_link") : "";
           } catch (JSONException ex) {
-            throw new RuntimeException("Can't get expected value: " + json, ex);
+            throw new FailureException("Can't get expected value: " + json, ex);
           }
         }
 
