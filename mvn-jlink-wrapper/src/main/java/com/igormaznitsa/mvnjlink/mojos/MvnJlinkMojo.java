@@ -60,7 +60,7 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
 
   @Nonnull
   @MustNotContainNull
-  private List<String> getModulesFromJdepsOut(@Nullable final Optional<Path> jdepsOutPath) throws MojoExecutionException {
+  private List<String> getModulesFromJdepsOut(@Nonnull final Optional<Path> jdepsOutPath) throws MojoExecutionException {
     if (jdepsOutPath.isPresent()) {
       final Path jdepsFile = Paths.get(this.jdepsOut);
 
