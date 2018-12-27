@@ -14,6 +14,7 @@ import static java.util.regex.Pattern.compile;
 public final class StringUtils {
   private static final Pattern PATTERN_MODULE_LINE = compile("^(.*)->(.*)$");
   private static final Pattern PATTERN_FILE_HASH = compile("([0-9a-fA-F]+)\\s+(.+)");
+
   private StringUtils() {
   }
 

@@ -2,6 +2,7 @@ package com.igormaznitsa.mvnjlink.mojos;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
+import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -81,6 +82,8 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
+    } catch (FailureException ex) {
+      throw new MojoFailureException(ex.getMessage());
     }
 
     final Path outputPath = Paths.get(this.output);

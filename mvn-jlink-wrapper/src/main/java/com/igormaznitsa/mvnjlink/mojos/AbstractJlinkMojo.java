@@ -23,6 +23,9 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
 
+  @Parameter(defaultValue = "false", name = "offline")
+  private boolean offline;
+
   @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
   private String jdkCachePath = System.getProperty("user.home") + File.separator + ".mvnJlinkJdkCache";
 
@@ -43,6 +46,10 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
 
   @Parameter(name = "baseJdkHome", defaultValue = "${java.home}")
   private String baseJdkHome = System.getProperty("java.home");
+
+  public boolean isOffline() {
+    return this.offline;
+  }
 
   @Nonnull
   public Map<String, String> getProviderConfig() {

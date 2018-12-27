@@ -44,6 +44,10 @@ public abstract class AbstractJdkProvider {
     return result.toString();
   }
 
+  protected boolean isOfflineMode() {
+    return this.mojo.isOffline();
+  }
+
   @Nonnull
   public abstract Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
 }

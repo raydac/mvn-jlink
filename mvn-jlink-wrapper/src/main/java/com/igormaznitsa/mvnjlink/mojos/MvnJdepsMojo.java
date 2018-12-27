@@ -1,5 +1,6 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
+import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
@@ -38,6 +39,8 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
       this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
+    } catch (FailureException ex) {
+      throw new MojoFailureException(ex.getMessage());
     }
 
     final Path baseJdkHomeFolder = findBaseJdkHomeFolder();

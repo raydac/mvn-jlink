@@ -1,6 +1,8 @@
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
+import com.igormaznitsa.mvnjlink.exceptions.FailureException;
+import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
@@ -93,7 +95,11 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       log.info("Found cached JDK: " + cachedJdkFolderName);
       return cachedJdkFolderPath;
     } else {
-      log.info("Can't find cached sdk: " + cachedJdkFolderName);
+      if (isOfflineMode()) {
+        throw new FailureException("Unpacked JDK (" + cachedJdkFolderName + ") is not found, stopping process because offline mode is active");
+      } else {
+        log.info("Can't find cached sdk: " + cachedJdkFolderName);
+      }
 
       final String adoptApiUri;
       if (jdkReleaseListUrl == null) {
@@ -171,14 +177,11 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           try {
             hashRef.set(EntityUtils.toString(x));
           } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new IORuntimeWrapperException(ex);
           }
         }, "text/plain");
-      } catch (RuntimeException ex) {
-        if (ex.getCause() instanceof IOException) {
-          throw (IOException) ex.getCause();
-        }
-        throw ex;
+      } catch (IORuntimeWrapperException ex) {
+        throw ex.getWrapped();
       }
 
       digestCode = StringUtils.extractFileHash(hashRef.get());
@@ -256,15 +259,12 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           try (final OutputStream fileOutStream = Files.newOutputStream(file)) {
             copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
           }
-        } catch (Exception ex) {
-          throw new RuntimeException("Error during downloading", ex);
+        } catch (IOException ex) {
+          throw new IORuntimeWrapperException(ex);
         }
       }, "application/x-gzip", "application/zip", "application/gzip");
-    } catch (RuntimeException ex) {
-      if (ex.getCause() instanceof IOException) {
-        throw (IOException) ex.getCause();
-      }
-      throw ex;
+    } catch (IORuntimeWrapperException ex) {
+      throw ex.getWrapped();
     }
     return calcSha256ForFile(file);
   }
