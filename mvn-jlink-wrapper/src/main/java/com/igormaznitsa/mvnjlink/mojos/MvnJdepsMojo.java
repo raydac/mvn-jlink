@@ -89,6 +89,7 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
         } catch (IOException ex) {
           throw new MojoExecutionException("Can't write jdeps file: " + file, ex);
         }
+        log.info("Saved " + text.length() + " chars into file : " + file.getAbsolutePath());
       }
     } else {
       this.getLog().info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
