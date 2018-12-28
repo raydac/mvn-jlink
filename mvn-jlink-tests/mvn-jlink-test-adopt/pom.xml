@@ -42,9 +42,7 @@
                         <configuration>
                             <output>${project.build.directory}${file.separator}jdeps.out</output>
                             <options>
-                                <option>--jdk-internals</option>
-                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar
-                                </option>
+                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
                             </options>
                         </configuration>
                     </execution>
@@ -56,16 +54,16 @@
                         <configuration>
                             <provider>ADOPT</provider>
                             <providerConfig>
-                                <release>jdk-11.0.1+13</release>
-                                <os>linux</os>
+                                <release>jdk-10</release>
                                 <arch>x64</arch>
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
                             </providerConfig>
-                            <jdkCachePath>${project.build.directory}${file.separator}jlinkcache</jdkCachePath>
-                            <jdepsOut>${project.build.directory}${file.separator}jdeps.out</jdepsOut>
+                            <!--jdkCachePath>${project.build.directory}${file.separator}jlinkcache</jdkCachePath-->
+                            <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
                             <output>${project.build.directory}${file.separator}preparedJDK</output>
                             <disableSSLcheck>true</disableSSLcheck>
+                            <toolJdk>${java.home}</toolJdk>
                             <options>
                                 <option>--compress=2</option>
                                 <option>--no-header-files</option>

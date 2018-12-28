@@ -14,10 +14,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.Charset.defaultCharset;
 import static org.apache.commons.io.FileUtils.write;
 
 @Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE)
@@ -33,16 +35,13 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     final Log log = this.getLog();
 
-    this.processJdkProvider();
-
-    final Path baseJdkHomeFolder = findBaseJdkHomeFolder();
-    log.info("Base JDK home folder: " + baseJdkHomeFolder);
+    this.getSourceJdkFolderFromProvider();
 
     final String pathToJdeps = this.findJdkTool("jdeps");
     if (pathToJdeps == null) {
       throw new MojoExecutionException("Can't find jdeps in JDK");
     }
-    final Path execJdepsPath = Path.of(pathToJdeps);
+    final Path execJdepsPath = Paths.get(pathToJdeps);
 
     final List<String> cliArguments = new ArrayList<>();
     cliArguments.add(execJdepsPath.toString());
@@ -68,8 +67,8 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
     }
 
     if (executor.getExitValue() == 0) {
-      final String text = new String(consoleOut.toByteArray(), Charset.defaultCharset());
-      final String error = new String(consoleErr.toByteArray(), Charset.defaultCharset());
+      final String text = new String(consoleOut.toByteArray(), defaultCharset());
+      final String error = new String(consoleErr.toByteArray(), defaultCharset());
 
       log.debug(text);
       log.debug(error);
@@ -86,16 +85,24 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
       if (this.output != null) {
         final File file = new File(this.output);
         try {
-          write(file, text, Charset.defaultCharset());
+          write(file, text, defaultCharset());
         } catch (IOException ex) {
           throw new MojoExecutionException("Can't write jdeps file: " + file, ex);
         }
         log.info("Saved " + text.length() + " chars into file : " + file.getAbsolutePath());
       }
     } else {
-      log.info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
-      log.error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
-      throw new MojoFailureException("Call of jdeps returns status code " + executor.getExitValue());
+      final String strOut = new String(consoleOut.toByteArray(), Charset.defaultCharset());
+      final String strErr = new String(consoleErr.toByteArray(), Charset.defaultCharset());
+
+      if (strErr.isEmpty()) {
+        log.error(strOut);
+      } else {
+        log.info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
+        log.error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
+      }
+
+      throw new MojoFailureException("jdeps returns error status code: " + executor.getExitValue());
     }
 
   }

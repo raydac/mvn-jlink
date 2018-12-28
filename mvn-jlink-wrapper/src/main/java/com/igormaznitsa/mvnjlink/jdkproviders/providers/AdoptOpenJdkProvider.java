@@ -1,11 +1,13 @@
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
+import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -64,13 +66,33 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
+  public Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertAttributes(config, "release", "os", "arch", "type", "impl");
+    assertAttributes(config, "release", "arch", "type", "impl");
+
+    final String defaultOs;
+    if (SystemUtils.IS_OS_MAC) {
+      defaultOs = "mac";
+    } else if (SystemUtils.IS_OS_WINDOWS) {
+      defaultOs = "windows";
+    } else if (SystemUtils.IS_OS_AIX) {
+      defaultOs = "aix";
+    } else if (SystemUtils.IS_OS_FREE_BSD) {
+      defaultOs = "freebsd";
+    } else if (SystemUtils.IS_OS_IRIX) {
+      defaultOs = "irix";
+    } else if (SystemUtils.IS_OS_ZOS) {
+      defaultOs = "zos";
+    } else {
+      defaultOs = "linux";
+    }
+
+    log.debug("Default OS recognized as: " + defaultOs);
+
 
     final String jdkRelease = config.get("release");
-    final String jdkOs = config.get("os");
+    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
     final String jdkType = config.get("type");
     final String jdkImpl = config.get("impl");
@@ -85,11 +107,10 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         escapeFileName(jdkImpl.toLowerCase(ENGLISH).trim())
     );
 
-    log.info("looking for '" + cachedJdkFolderName + "' in cache");
+    log.info("looking for '" + cachedJdkFolderName + "' in the cache folder");
     final Path cachePath = this.mojo.findJdkCacheFolder();
 
     final Path cachedJdkFolderPath = cachePath.resolve(cachedJdkFolderName);
-    log.info("Cache folder: " + cachePath);
 
     if (isDirectory(cachedJdkFolderPath)) {
       log.info("Found cached JDK: " + cachedJdkFolderName);
@@ -251,7 +272,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
 
     if (keepArchiveFile) {
-      log.info("Keeping archive file in cache: " + downloadArchiveFile);
+      log.info("Keep downloaded archive file in cache: " + downloadArchiveFile);
     } else {
       log.info("Deleting archive: " + downloadArchiveFile);
       delete(downloadArchiveFile);
@@ -263,7 +284,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     try {
       doGetRequest(client, link, this.mojo.getProxy(), httpEntity -> {
         try {
-          try (final OutputStream fileOutStream = Files.newOutputStream(file)) {
+          try (final OutputStream fileOutStream = newOutputStream(file)) {
             copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
           }
         } catch (IOException ex) {

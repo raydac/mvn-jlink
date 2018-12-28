@@ -49,5 +49,5 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  public abstract Path prepareJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
+  public abstract Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
 }

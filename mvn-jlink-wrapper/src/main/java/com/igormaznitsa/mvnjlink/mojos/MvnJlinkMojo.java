@@ -34,8 +34,8 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 @Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE)
 public class MvnJlinkMojo extends AbstractJlinkMojo {
 
-  @Parameter(name = "jdepsOut")
-  private String jdepsOut;
+  @Parameter(name = "jdepsReportPath")
+  private String jdepsReportPath;
 
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
@@ -58,9 +58,9 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
 
   @Nonnull
   @MustNotContainNull
-  private List<String> getModulesFromJdepsOut(@Nonnull final Optional<Path> jdepsOutPath) throws MojoExecutionException {
-    if (jdepsOutPath.isPresent()) {
-      final Path jdepsFile = Paths.get(this.jdepsOut);
+  private static List<String> extractModuleNamesFromJdepsReport(@Nonnull final Optional<Path> jdepsReportPath) throws MojoExecutionException {
+    if (jdepsReportPath.isPresent()) {
+      final Path jdepsFile = jdepsReportPath.get();
 
       try {
         return extractJdepsModuleNames(FileUtils.readFileToString(jdepsFile.toFile(), Charset.defaultCharset()));
@@ -76,30 +76,28 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     final Log log = this.getLog();
 
-    this.processJdkProvider();
+    final Path providerJdk = this.getSourceJdkFolderFromProvider();
 
     final Path outputPath = Paths.get(this.output);
-
-    final Path homeJdkPath = findBaseJdkHomeFolder();
-    if (homeJdkPath == null) {
-      throw new MojoExecutionException("Can't find home JDK folder, may be it is non defined");
-    }
 
     final String pathToJlink = this.findJdkTool("jlink");
     if (pathToJlink == null) {
       throw new MojoExecutionException("Can't find jlink in JDK");
     }
-    final Path execJlinkPath = Path.of(pathToJlink);
+    final Path execJlinkPath = Paths.get(pathToJlink);
 
-    final List<String> modulesFromJdeps = getModulesFromJdepsOut(ofNullable(this.jdepsOut == null ? null : Paths.get(this.jdepsOut)));
+    final List<String> modulesFromJdeps = extractModuleNamesFromJdepsReport(ofNullable(this.jdepsReportPath == null ? null : Paths.get(this.jdepsReportPath)));
     final List<String> totalModules = new ArrayList<>(modulesFromJdeps);
     totalModules.addAll(this.addModules);
 
     final String joinedAddModules = totalModules.stream().map(String::trim).collect(joining(","));
 
-    log.info("Add modules : " + joinedAddModules);
+    log.info("List of modules : " + joinedAddModules);
 
     final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
+
+    commandLineOptions.add("--module-path");
+    commandLineOptions.add(providerJdk.resolve("jmods").toString());
 
     final int indexOptions = commandLineOptions.indexOf("--add-modules");
     if (indexOptions < 0) {
@@ -153,9 +151,21 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       log.debug(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
       log.info("Execution completed successfully, the result folder is " + outputPath);
     } else {
-      log.info(new String(consoleOut.toByteArray(), Charset.defaultCharset()));
-      log.error(new String(consoleErr.toByteArray(), Charset.defaultCharset()));
-      throw new MojoFailureException("jlink execution error code: " + executor.getExitValue());
+      final String textOut = new String(consoleOut.toByteArray(), Charset.defaultCharset());
+      final String textErr = new String(consoleErr.toByteArray(), Charset.defaultCharset());
+
+      if (executor.getExitValue() == 1 && textOut.contains("Error: java.lang.IllegalArgumentException")) {
+        log.error("It looks like that working JDK is incompatible with the source module JDK!");
+      }
+
+      if (textErr.isEmpty()) {
+        log.error(textOut);
+      } else {
+        log.info(textOut);
+        log.error(textErr);
+      }
+
+      throw new MojoFailureException("jlink returns error status code: " + executor.getExitValue());
     }
   }
 }

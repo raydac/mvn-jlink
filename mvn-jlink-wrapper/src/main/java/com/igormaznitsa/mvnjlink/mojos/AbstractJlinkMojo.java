@@ -8,6 +8,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -26,8 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-// TODO investigate https://github.com/apache/maven-jdeps-plugin/blob/maven-jdeps-plugin-3.1.1
 
 public abstract class AbstractJlinkMojo extends AbstractMojo {
 
@@ -58,7 +57,7 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   @Parameter(name = "providerConfig")
   private Map<String, String> providerConfig = new HashMap<>();
 
-  @Parameter(name = "toolJdk", defaultValue = "null")
+  @Parameter(name = "toolJdk")
   private String toolJdk = null;
 
   @Component
@@ -101,6 +100,8 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     return this.project;
   }
 
+  private final Map<String, String> toolPathCache = new HashMap<>();
+
   public final void execute() throws MojoExecutionException, MojoFailureException {
     if (isSkip()) {
       this.getLog().debug("Skip flag is active");
@@ -129,6 +130,7 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     final Path result = Paths.get(storeFolder);
 
     if (!Files.isDirectory(result)) {
+      this.getLog().info("Creating cache folder: " + result);
       Files.createDirectories(result);
     }
 
@@ -142,9 +144,10 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     return result;
   }
 
-  protected void processJdkProvider() throws MojoExecutionException, MojoFailureException {
+  @Nonnull
+  protected Path getSourceJdkFolderFromProvider() throws MojoExecutionException, MojoFailureException {
     try {
-      this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
+      return this.getProvider().makeInstance(this).prepareSourceJdkFolder(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
     } catch (FailureException ex) {
@@ -153,23 +156,39 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   }
 
   @Nullable
-  protected String findJdkTool(@Nonnull final String toolName) {
-    String toolPath = null;
-    if (this.toolJdk == null) {
-      final Toolchain toolcahin = getToolchain();
-      if (toolcahin == null) {
+  public String findJdkTool(@Nonnull final String toolName) {
+    final Log log = this.getLog();
 
+    String toolPath = this.toolPathCache.get(toolName);
+    if (toolPath == null) {
+      if (this.toolJdk == null) {
+        final Toolchain toolchain = getToolchain();
+        log.debug("Toolchain: " + toolchain);
+        if (toolchain == null) {
+          final String mavenJavaHome = System.getProperty("java.home");
+          log.debug("Maven java.home: " + mavenJavaHome);
+          final Path path = SystemUtils.findJdkExecutable(log, Paths.get(mavenJavaHome), SystemUtils.ensureOsExtension(toolName));
+          toolPath = path == null ? null : path.toString();
+        } else {
+          log.info("Detected toolchain: " + toolchain);
+          toolPath = SystemUtils.ensureOsExtension(toolchain.findTool(toolName));
+        }
       } else {
-        toolPath = SystemUtils.ensureOsExtension(toolcahin.findTool(toolName));
+        final Path jdkHome = Paths.get(this.toolJdk);
+        if (Files.isDirectory(jdkHome)) {
+          log.info("Tool base JDK home: " + jdkHome);
+          final Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
+          toolPath = foundPath == null ? null : foundPath.toString();
+        } else {
+          log.error("Can't find directory: " + jdkHome);
+        }
+      }
+      if (toolPath != null) {
+        log.debug("Caching path for tool '" + toolName + "' -> " + toolPath);
+        this.toolPathCache.put(toolName, toolPath);
       }
     } else {
-      final Path jdkHome = Path.of(this.toolJdk);
-      if (Files.isDirectory(jdkHome)) {
-        Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
-        toolPath = foundPath == null ? null : foundPath.toString();
-      } else {
-        this.getLog().error("Can't find directory: " + jdkHome);
-      }
+      log.debug("Detected cached path for tool '" + toolName + "' -> " + toolPath);
     }
     return toolPath;
   }
