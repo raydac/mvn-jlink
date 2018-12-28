@@ -1,6 +1,5 @@
 package com.igormaznitsa.mvnjlink.mojos;
 
-import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.igormaznitsa.mvnjlink.utils.SystemUtils.findJdkExecutable;
 import static org.apache.commons.io.FileUtils.write;
 
 @Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE)
@@ -41,7 +39,9 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
     log.info("Base JDK home folder: " + baseJdkHomeFolder);
 
     final String pathToJdeps = this.findJdkTool("jdeps");
-    if (pathToJdeps == null) throw new MojoExecutionException("Can't find jdeps in JDK");
+    if (pathToJdeps == null) {
+      throw new MojoExecutionException("Can't find jdeps in JDK");
+    }
     final Path execJdepsPath = Path.of(pathToJdeps);
 
     final List<String> cliArguments = new ArrayList<>();

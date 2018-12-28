@@ -114,7 +114,7 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   }
 
   @Nonnull
-  protected MavenSession getSession(){
+  protected MavenSession getSession() {
     return this.session;
   }
 
@@ -168,31 +168,28 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
         Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
         toolPath = foundPath == null ? null : foundPath.toString();
       } else {
-        this.getLog().error("Can't find directory: "+jdkHome);
+        this.getLog().error("Can't find directory: " + jdkHome);
       }
     }
     return toolPath;
   }
 
   @Nullable
-  protected Toolchain getToolchain()
-  {
+  protected Toolchain getToolchain() {
     Toolchain result = null;
-    if (this.toolchainManager != null ) {
-      result = this.toolchainManager.getToolchainFromBuildContext( "jdk", this.session);
+    if (this.toolchainManager != null) {
+      result = this.toolchainManager.getToolchainFromBuildContext("jdk", this.session);
 
-      if ( result == null ) {
+      if (result == null) {
         try {
-          final Method getToolchainsMethod = this.toolchainManager.getClass().getMethod( "getToolchains", MavenSession.class, String.class, Map.class);
+          final Method getToolchainsMethod = this.toolchainManager.getClass().getMethod("getToolchains", MavenSession.class, String.class, Map.class);
 
-          @SuppressWarnings( "unchecked" )
-          final List<Toolchain> toolchainList = (List<Toolchain>) getToolchainsMethod.invoke(this.toolchainManager, this.session, "jdk", Collections.singletonMap( "version", "[1.8,)" ) );
+          @SuppressWarnings("unchecked") final List<Toolchain> toolchainList = (List<Toolchain>) getToolchainsMethod.invoke(this.toolchainManager, this.session, "jdk", Collections.singletonMap("version", "[1.8,)"));
 
-          if ( toolchainList != null && !toolchainList.isEmpty()) {
-            result = toolchainList.get( toolchainList.size() - 1 );
+          if (toolchainList != null && !toolchainList.isEmpty()) {
+            result = toolchainList.get(toolchainList.size() - 1);
           }
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
           this.getLog().debug("Exception during getToolchain()", ex);
         }
       }
@@ -200,7 +197,6 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
 
     return result;
   }
-
 
 
   public abstract void onExecute() throws MojoExecutionException, MojoFailureException;

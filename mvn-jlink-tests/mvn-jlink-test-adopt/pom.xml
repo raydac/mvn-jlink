@@ -43,7 +43,8 @@
                             <output>${project.build.directory}${file.separator}jdeps.out</output>
                             <options>
                                 <option>--jdk-internals</option>
-                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar
+                                </option>
                             </options>
                         </configuration>
                     </execution>

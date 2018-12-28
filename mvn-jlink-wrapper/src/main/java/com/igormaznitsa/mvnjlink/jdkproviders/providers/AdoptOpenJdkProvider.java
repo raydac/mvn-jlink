@@ -108,7 +108,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           final String jdkVersion = matcher.group(2);
           final int dotIndex = jdkVersion.indexOf('.');
           log.debug("Extracted JDK version " + jdkVersion + " from " + jdkRelease);
-          adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + (dotIndex<0 ? jdkVersion : jdkVersion.substring(0,dotIndex));
+          adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + (dotIndex < 0 ? jdkVersion : jdkVersion.substring(0, dotIndex));
         } else {
           throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + jdkRelease);
         }
@@ -145,7 +145,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
       if (foundRelease == null) {
         log.error("Can't find release : " + jdkRelease);
-        log.error("List of JDKs\n---------------------\n"+releaseList.makeListOfAllReleases());
+        log.error("List of JDKs\n---------------------\n" + releaseList.makeListOfAllReleases());
         throw new IOException("Can't find appropriate JDK release in provided list for '" + jdkRelease + '\'');
       } else {
         log.debug("Found release for name : " + jdkRelease);

@@ -6,7 +6,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -19,10 +18,10 @@ public final class SystemUtils {
   public static Path findJdkExecutable(@Nonnull final Log log, @Nonnull final Path jdkFolder, @Nonnull final String jdkExecutableFileName) {
     Path result = jdkFolder.resolve("bin" + File.separatorChar + ensureOsExtension(jdkExecutableFileName));
     if (!Files.isRegularFile(result)) {
-      log.error("Can't find file: "+result);
+      log.error("Can't find file: " + result);
       result = null;
     } else if (!Files.isExecutable(result)) {
-      log.error("Can't find executable file: "+result);
+      log.error("Can't find executable file: " + result);
       result = null;
     }
     return result;

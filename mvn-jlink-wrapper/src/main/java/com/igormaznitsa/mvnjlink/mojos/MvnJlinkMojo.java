@@ -2,7 +2,6 @@ package com.igormaznitsa.mvnjlink.mojos;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
-import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.igormaznitsa.mvnjlink.utils.StringUtils.extractJdepsModuleNames;
-import static com.igormaznitsa.mvnjlink.utils.SystemUtils.findJdkExecutable;
 import static java.nio.file.Files.isDirectory;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
@@ -88,7 +86,9 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     }
 
     final String pathToJlink = this.findJdkTool("jlink");
-    if (pathToJlink == null) throw new MojoExecutionException("Can't find jlink in JDK");
+    if (pathToJlink == null) {
+      throw new MojoExecutionException("Can't find jlink in JDK");
+    }
     final Path execJlinkPath = Path.of(pathToJlink);
 
     final List<String> modulesFromJdeps = getModulesFromJdepsOut(ofNullable(this.jdepsOut == null ? null : Paths.get(this.jdepsOut)));
