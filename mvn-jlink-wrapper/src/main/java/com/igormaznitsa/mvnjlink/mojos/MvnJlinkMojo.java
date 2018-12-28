@@ -48,16 +48,6 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
 
   @Nonnull
   @MustNotContainNull
-  public List<String> getOptions() {
-    return this.options;
-  }
-
-  public void setOptions(@Nullable @MustNotContainNull final List<String> value) {
-    this.options = GetUtils.ensureNonNull(value, new ArrayList<>());
-  }
-
-  @Nonnull
-  @MustNotContainNull
   private static List<String> extractModuleNamesFromJdepsReport(@Nonnull final Optional<Path> jdepsReportPath) throws MojoExecutionException {
     if (jdepsReportPath.isPresent()) {
       final Path jdepsFile = jdepsReportPath.get();
@@ -70,6 +60,16 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     } else {
       return Collections.emptyList();
     }
+  }
+
+  @Nonnull
+  @MustNotContainNull
+  public List<String> getOptions() {
+    return this.options;
+  }
+
+  public void setOptions(@Nullable @MustNotContainNull final List<String> value) {
+    this.options = GetUtils.ensureNonNull(value, new ArrayList<>());
   }
 
   @Override

@@ -30,36 +30,27 @@ import java.util.Map;
 
 public abstract class AbstractJlinkMojo extends AbstractMojo {
 
+  private final Map<String, String> toolPathCache = new HashMap<>();
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
-
   @Parameter(defaultValue = "false", name = "useOnlyCache")
   private boolean useOnlyCache;
-
   @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
   private String jdkCachePath = System.getProperty("user.home") + File.separator + ".mvnJlinkJdkCache";
-
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
   private MavenSession session;
-
   @Parameter(name = "skip", defaultValue = "false")
   private boolean skip;
-
   @Parameter(name = "disableSSLcheck", defaultValue = "false")
   private boolean disableSSLcheck;
-
   @Parameter(name = "proxy")
   private ProxySettings proxy;
-
   @Parameter(name = "provider", defaultValue = "LOCAL")
   private JdkProviderId provider = JdkProviderId.LOCAL;
-
   @Parameter(name = "providerConfig")
   private Map<String, String> providerConfig = new HashMap<>();
-
   @Parameter(name = "toolJdk")
   private String toolJdk = null;
-
   @Component
   private ToolchainManager toolchainManager;
 
@@ -99,8 +90,6 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
   public MavenProject getProject() {
     return this.project;
   }
-
-  private final Map<String, String> toolPathCache = new HashMap<>();
 
   public final void execute() throws MojoExecutionException, MojoFailureException {
     if (isSkip()) {
