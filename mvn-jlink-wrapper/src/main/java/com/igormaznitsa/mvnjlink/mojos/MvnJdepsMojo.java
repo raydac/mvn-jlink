@@ -35,23 +35,14 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     final Log log = this.getLog();
 
-    try {
-      this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
-    } catch (IOException ex) {
-      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
-    } catch (FailureException ex) {
-      throw new MojoFailureException(ex.getMessage());
-    }
+    this.processJdkProvider();
 
     final Path baseJdkHomeFolder = findBaseJdkHomeFolder();
     log.info("Base JDK home folder: " + baseJdkHomeFolder);
 
-    final Path execJdepsPath;
-    try {
-      execJdepsPath = findJdkExecutable(baseJdkHomeFolder, "jdeps");
-    } catch (IOException ex) {
-      throw new MojoExecutionException("Can't find jdeps utility", ex);
-    }
+    final String pathToJdeps = this.findJdkTool("jdeps");
+    if (pathToJdeps == null) throw new MojoExecutionException("Can't find jdeps in JDK");
+    final Path execJdepsPath = Path.of(pathToJdeps);
 
     final List<String> cliArguments = new ArrayList<>();
     cliArguments.add(execJdepsPath.toString());

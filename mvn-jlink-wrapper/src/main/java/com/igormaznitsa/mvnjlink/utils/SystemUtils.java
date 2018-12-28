@@ -15,25 +15,34 @@ public final class SystemUtils {
 
   }
 
-  @Nonnull
-  public static Path findJdkExecutable(@Nonnull final Path jdkFolder, @Nonnull final String jdkExecutableFileName) throws IOException {
-    final String extenstion = SystemUtils.findAppropriateBinExtension();
-
-    final Path result = jdkFolder.resolve("bin" + File.separatorChar + jdkExecutableFileName + (extenstion.isEmpty() ? extenstion : '.' + extenstion));
+  @Nullable
+  public static Path findJdkExecutable(@Nonnull final Log log, @Nonnull final Path jdkFolder, @Nonnull final String jdkExecutableFileName) {
+    Path result = jdkFolder.resolve("bin" + File.separatorChar + ensureOsExtension(jdkExecutableFileName));
     if (!Files.isRegularFile(result)) {
-      throw new IOException("Can't find file: " + result);
-    }
-    if (!Files.isExecutable(result)) {
-      throw new IOException("Can't get execution rights: " + result);
+      log.error("Can't find file: "+result);
+      result = null;
+    } else if (!Files.isExecutable(result)) {
+      log.error("Can't find executable file: "+result);
+      result = null;
     }
     return result;
   }
 
-  @Nonnull
-  public static String findAppropriateBinExtension() {
-    String result = "";
-    if (org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS) {
-      result = "exe";
+  @Nullable
+  public static String ensureOsExtension(@Nullable final String text) {
+    final String result;
+    if (text == null) {
+      result = null;
+    } else {
+      if (org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS) {
+        if (!text.endsWith(".exe")) {
+          result = text + ".exe";
+        } else {
+          result = text;
+        }
+      } else {
+        result = text;
+      }
     }
     return result;
   }

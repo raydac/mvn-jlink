@@ -45,7 +45,7 @@ public abstract class AbstractJdkProvider {
   }
 
   protected boolean isOfflineMode() {
-    return this.mojo.isOffline();
+    return this.mojo.isOfflineModeActive();
   }
 
   @Nonnull

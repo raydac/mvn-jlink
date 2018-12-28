@@ -78,13 +78,7 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
   public void onExecute() throws MojoExecutionException, MojoFailureException {
     final Log log = this.getLog();
 
-    try {
-      this.getProvider().makeInstance(this).prepareJdkFolder(this.getProviderConfig());
-    } catch (IOException ex) {
-      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
-    } catch (FailureException ex) {
-      throw new MojoFailureException(ex.getMessage());
-    }
+    this.processJdkProvider();
 
     final Path outputPath = Paths.get(this.output);
 
@@ -93,12 +87,9 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
       throw new MojoExecutionException("Can't find home JDK folder, may be it is non defined");
     }
 
-    final Path execJlinkPath;
-    try {
-      execJlinkPath = findJdkExecutable(homeJdkPath, "jlink");
-    } catch (IOException ex) {
-      throw new MojoExecutionException("Can't find jlink utility", ex);
-    }
+    final String pathToJlink = this.findJdkTool("jlink");
+    if (pathToJlink == null) throw new MojoExecutionException("Can't find jlink in JDK");
+    final Path execJlinkPath = Path.of(pathToJlink);
 
     final List<String> modulesFromJdeps = getModulesFromJdepsOut(ofNullable(this.jdepsOut == null ? null : Paths.get(this.jdepsOut)));
     final List<String> totalModules = new ArrayList<>(modulesFromJdeps);
