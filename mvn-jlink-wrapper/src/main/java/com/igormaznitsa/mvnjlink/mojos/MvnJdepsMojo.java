@@ -22,12 +22,21 @@ import java.util.stream.Collectors;
 import static java.nio.charset.Charset.defaultCharset;
 import static org.apache.commons.io.FileUtils.write;
 
-@Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE)
-public class MvnJdepsMojo extends AbstractJlinkMojo {
+/**
+ * Execute JDEPS in JDK, output will be saved.
+ */
+@Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE, threadSafe = true)
+public class MvnJdepsMojo extends AbstractJdkToolMojo {
 
+  /**
+   * Options, they will be added to command line.
+   */
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
 
+  /**
+   * Output file where will be written output stream of the tool.
+   */
   @Parameter(name = "output", required = true)
   private String output;
 
@@ -58,6 +67,7 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
           .readOutput(true)
           .redirectOutput(consoleOut)
           .redirectError(consoleErr)
+          .exitValueAny()
           .executeNoTimeout();
     } catch (IOException ex) {
       throw new MojoExecutionException("Error during execution", ex);
@@ -83,13 +93,13 @@ public class MvnJdepsMojo extends AbstractJlinkMojo {
       }
 
       if (this.output != null) {
-        final File file = new File(this.output);
+        final File outFile = new File(this.output);
         try {
-          write(file, text, defaultCharset());
+          write(outFile, text, defaultCharset());
         } catch (IOException ex) {
-          throw new MojoExecutionException("Can't write jdeps file: " + file, ex);
+          throw new MojoExecutionException("Can't write jdeps file: " + outFile, ex);
         }
-        log.info("Saved " + text.length() + " chars into file : " + file.getAbsolutePath());
+        log.info("Saved " + text.length() + " chars into file : " + outFile.getAbsolutePath());
       }
     } else {
       final String strOut = new String(consoleOut.toByteArray(), Charset.defaultCharset());

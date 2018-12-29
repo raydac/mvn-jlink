@@ -1,8 +1,10 @@
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
-import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
+import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import org.apache.maven.plugin.logging.Log;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -11,10 +13,28 @@ import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 
 public abstract class AbstractJdkProvider {
 
-  protected final AbstractJlinkMojo mojo;
+  protected final AbstractJdkToolMojo mojo;
 
-  public AbstractJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
+  public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
+  }
+
+  @Nonnull
+  protected File lockCache(@Nonnull final Log log, @Nonnull final Path cacheFolder) throws IOException {
+    final File lockFile = cacheFolder.resolve(".#loadLock").toFile();
+    lockFile.deleteOnExit();
+    if (!lockFile.createNewFile()) {
+      log.info("Detected SDK loading, waiting for the process end");
+      while (lockFile.exists()) {
+        try {
+          Thread.sleep(100L);
+        } catch (InterruptedException ex) {
+          throw new IOException("Wait of SDK loading is interrupted", ex);
+        }
+      }
+      log.info("Loading process has been completed");
+    }
+    return lockFile;
   }
 
   @Nonnull

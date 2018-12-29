@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractJlinkMojo extends AbstractMojo {
+public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   private final Map<String, String> toolPathCache = new HashMap<>();
   @Parameter(defaultValue = "${project}", readonly = true, required = true)

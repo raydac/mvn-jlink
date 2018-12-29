@@ -1,7 +1,7 @@
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
-import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
+import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.mojos.MvnJdepsMojo;
 import org.apache.maven.plugin.logging.Log;
 
@@ -14,7 +14,7 @@ import java.util.Map;
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 
 public class LocalJdkProvider extends AbstractJdkProvider {
-  public LocalJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
+  public LocalJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
 

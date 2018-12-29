@@ -9,8 +9,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
-@Mojo(name = "cache-jdk", defaultPhase = LifecyclePhase.INITIALIZE)
-public class MvnCacheJdkMojo extends AbstractJlinkMojo {
+@Mojo(name = "cache-jdk", defaultPhase = LifecyclePhase.INITIALIZE, threadSafe = true)
+public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
 
   @Parameter(name = "jdkPathProperty", defaultValue = "mvnjlink.cache.jdk.path")
   private String jdkPathProperty = "mvnjlink.cache.jdk.path";

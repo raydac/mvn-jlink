@@ -2,7 +2,7 @@ package com.igormaznitsa.mvnjlink.jdkproviders;
 
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LocalJdkProvider;
-import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
+import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
@@ -19,9 +19,9 @@ public enum JdkProviderId {
   }
 
   @Nonnull
-  public AbstractJdkProvider makeInstance(@Nonnull final AbstractJlinkMojo mojo) {
+  public AbstractJdkProvider makeInstance(@Nonnull final AbstractJdkToolMojo mojo) {
     try {
-      return this.implementation.getDeclaredConstructor(AbstractJlinkMojo.class).newInstance(mojo);
+      return this.implementation.getDeclaredConstructor(AbstractJdkToolMojo.class).newInstance(mojo);
     } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
       throw new Error("Unexpected error, can't create instance of JDK provider", e);
     }

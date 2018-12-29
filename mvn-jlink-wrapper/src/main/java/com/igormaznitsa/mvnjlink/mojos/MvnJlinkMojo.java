@@ -31,8 +31,11 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
-@Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE)
-public class MvnJlinkMojo extends AbstractJlinkMojo {
+/**
+ * Execute JLINK.
+ */
+@Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE, threadSafe = true)
+public class MvnJlinkMojo extends AbstractJdkToolMojo {
 
   @Parameter(name = "jdepsReportPath")
   private String jdepsReportPath;
@@ -137,8 +140,10 @@ public class MvnJlinkMojo extends AbstractJlinkMojo {
     final ProcessResult executor;
     try {
       executor = new ProcessExecutor(commandLine)
+          .readOutput(true)
           .redirectOutput(consoleOut)
           .redirectError(consoleErr)
+          .exitValueAny()
           .executeNoTimeout();
     } catch (IOException ex) {
       throw new MojoExecutionException("Error during execution", ex);

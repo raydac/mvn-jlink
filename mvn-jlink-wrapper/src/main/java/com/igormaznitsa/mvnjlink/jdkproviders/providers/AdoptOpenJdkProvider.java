@@ -5,7 +5,7 @@ import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
-import com.igormaznitsa.mvnjlink.mojos.AbstractJlinkMojo;
+import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,7 +47,7 @@ import static org.apache.commons.io.IOUtils.copy;
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
 
-  public AdoptOpenJdkProvider(@Nonnull final AbstractJlinkMojo mojo) {
+  public AdoptOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
 
@@ -90,7 +91,6 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     log.debug("Default OS recognized as: " + defaultOs);
 
-
     final String jdkRelease = config.get("release");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
@@ -108,13 +108,13 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     );
 
     log.info("looking for '" + cachedJdkFolderName + "' in the cache folder");
-    final Path cachePath = this.mojo.findJdkCacheFolder();
 
-    final Path cachedJdkFolderPath = cachePath.resolve(cachedJdkFolderName);
+    final Path cacheFolder = this.mojo.findJdkCacheFolder();
+    final Path cachedJdkPath = cacheFolder.resolve(cachedJdkFolderName);
 
-    if (isDirectory(cachedJdkFolderPath)) {
+    if (isDirectory(cachedJdkPath)) {
       log.info("Found cached JDK: " + cachedJdkFolderName);
-      return cachedJdkFolderPath;
+      return cachedJdkPath;
     } else {
       if (isOfflineMode()) {
         throw new FailureException("Unpacked JDK (" + cachedJdkFolderName + ") is not found, stopping process because offline mode is active");
@@ -180,10 +180,38 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         throw new IOException("Can't find appropriate JDK release binary in provided list for '" + jdkRelease + '\'');
       } else {
         log.debug("Found release binary: " + foundReleaseBinary);
-        downloadAndUnpack(httpClient, foundReleaseBinary, cachePath, cachedJdkFolderPath, foundRelease.releaseName, keepArchiveFile);
+
+        if (!isDirectory(cachedJdkPath)) {
+          final Path tmpCachedJdkPath = cachedJdkPath.getParent().resolve(".#" + cachedJdkPath.getFileName().toString());
+          File lockFile = null;
+          boolean unlocked;
+
+          try {
+            lockFile = this.lockCache(log, cacheFolder);
+            if (isDirectory(cachedJdkPath)) {
+              log.debug("Detected already presented JDK folder so that loading ignored: " + cachedJdkPath);
+            } else {
+              log.debug("Locked cache, lock file: " + cacheFolder);
+              downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tmpCachedJdkPath, foundRelease.releaseName, keepArchiveFile);
+              if (tmpCachedJdkPath.toFile().renameTo(cachedJdkPath.toFile())) {
+                log.debug("renamed " + tmpCachedJdkPath.getFileName() + " to " + cachedJdkPath.getFileName());
+              } else {
+                log.error("Can't rename " + tmpCachedJdkPath.getFileName() + " to " + cachedJdkPath.getFileName());
+                throw new IOException("Can't rename unpacked temp folder");
+              }
+            }
+          } finally {
+            unlocked = lockFile.delete();
+            log.debug("status of unlock file delete: " + unlocked);
+          }
+
+          if (!unlocked) {
+            throw new IOException("Can't delete lock file: " + lockFile);
+          }
+        }
       }
     }
-    return cachedJdkFolderPath;
+    return cachedJdkPath;
   }
 
   private void downloadAndUnpack(
