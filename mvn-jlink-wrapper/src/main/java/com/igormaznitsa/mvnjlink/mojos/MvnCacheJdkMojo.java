@@ -9,9 +9,15 @@ import org.apache.maven.plugins.annotations.Parameter;
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
+/**
+ * Allows to load JDK by its provider into cache and save path of cached JDK into project property.
+ */
 @Mojo(name = "cache-jdk", defaultPhase = LifecyclePhase.INITIALIZE, threadSafe = true)
 public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
 
+  /**
+   * Name of project property to save path to cached JDK.
+   */
   @Parameter(name = "jdkPathProperty", defaultValue = "mvnjlink.cache.jdk.path")
   private String jdkPathProperty = "mvnjlink.cache.jdk.path";
 

@@ -29,28 +29,71 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractJdkToolMojo extends AbstractMojo {
-
+  /**
+   * internal cache for JDK tool paths.
+   */
   private final Map<String, String> toolPathCache = new HashMap<>();
+
+  /**
+   * Current maven project.
+   */
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
+
+  /**
+   * Disable loading and use only cached JDKs.
+   */
   @Parameter(defaultValue = "false", name = "useOnlyCache")
   private boolean useOnlyCache;
+
+  /**
+   * Path to JDK cache folder.
+   */
   @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
   private String jdkCachePath = System.getProperty("user.home") + File.separator + ".mvnJlinkJdkCache";
+
+  /**
+   * Current maven session.
+   */
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
   private MavenSession session;
+
+  /**
+   * Skip processing of the mojo.
+   */
   @Parameter(name = "skip", defaultValue = "false")
   private boolean skip;
+
+  /**
+   * Disable SSL check during network operations.
+   */
   @Parameter(name = "disableSSLcheck", defaultValue = "false")
   private boolean disableSSLcheck;
+
+  /**
+   * Proxy settings for network operations.
+   */
   @Parameter(name = "proxy")
   private ProxySettings proxy;
+
+  /**
+   * JDK provider.
+   */
   @Parameter(name = "provider", defaultValue = "LOCAL")
   private JdkProviderId provider = JdkProviderId.LOCAL;
+
+  /**
+   * Configuration for selected JDL provider.
+   */
   @Parameter(name = "providerConfig")
   private Map<String, String> providerConfig = new HashMap<>();
+
+  /**
+   * Path to JDK which tools will be used.
+   */
   @Parameter(name = "toolJdk")
   private String toolJdk = null;
+
   @Component
   private ToolchainManager toolchainManager;
 
@@ -161,13 +204,13 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
           final Path path = SystemUtils.findJdkExecutable(log, Paths.get(mavenJavaHome), SystemUtils.ensureOsExtension(toolName));
           toolPath = path == null ? null : path.toString();
         } else {
-          log.info("Detected toolchain: " + toolchain);
+          log.debug("Detected toolchain: " + toolchain);
           toolPath = SystemUtils.ensureOsExtension(toolchain.findTool(toolName));
         }
       } else {
         final Path jdkHome = Paths.get(this.toolJdk);
         if (Files.isDirectory(jdkHome)) {
-          log.info("Tool base JDK home: " + jdkHome);
+          log.debug("Tool base JDK home: " + jdkHome);
           final Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
           toolPath = foundPath == null ? null : foundPath.toString();
         } else {

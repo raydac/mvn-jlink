@@ -112,7 +112,7 @@ public class MvnJdkToolMojo extends AbstractJdkToolMojo {
     final ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
 
     try {
-      log.debug("CLI: " + cliOptions);
+      log.info("Executing: " + cliOptions);
 
       final ProcessExecutor executor = new ProcessExecutor(cliOptions)
           .redirectError(errorStream)
@@ -147,7 +147,9 @@ public class MvnJdkToolMojo extends AbstractJdkToolMojo {
 
       if (this.getOutput() != null) {
         try {
-          FileUtils.writeByteArrayToFile(new File(this.getOutput()), outStream.toByteArray());
+          final byte[] data = outStream.toByteArray();
+          FileUtils.writeByteArrayToFile(new File(this.getOutput()), data);
+          log.info("Written " + data.length + " bytes into " + this.getOutput());
         } catch (Exception ex) {
           log.error("Can't save output into file: " + this.getOutput());
           failed = true;
@@ -156,7 +158,9 @@ public class MvnJdkToolMojo extends AbstractJdkToolMojo {
 
       if (this.getOutputErr() != null) {
         try {
-          FileUtils.writeByteArrayToFile(new File(this.getOutputErr()), errorStream.toByteArray());
+          final byte[] data = errorStream.toByteArray();
+          FileUtils.writeByteArrayToFile(new File(this.getOutputErr()), data);
+          log.info("Written " + data.length + " bytes into " + this.getOutputErr());
         } catch (Exception ex) {
           log.error("Can't save error output into file: " + this.getOutputErr());
           failed = true;

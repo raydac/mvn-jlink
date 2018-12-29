@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.defaultCharset;
-import static org.apache.commons.io.FileUtils.write;
+import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 
 /**
  * Execute JDEPS in JDK, output will be saved.
@@ -95,7 +95,7 @@ public class MvnJdepsMojo extends AbstractJdkToolMojo {
       if (this.output != null) {
         final File outFile = new File(this.output);
         try {
-          write(outFile, text, defaultCharset());
+          writeByteArrayToFile(outFile, consoleOut.toByteArray());
         } catch (IOException ex) {
           throw new MojoExecutionException("Can't write jdeps file: " + outFile, ex);
         }

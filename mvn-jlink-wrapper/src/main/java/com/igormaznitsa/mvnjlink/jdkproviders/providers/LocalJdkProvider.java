@@ -2,7 +2,6 @@ package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
-import com.igormaznitsa.mvnjlink.mojos.MvnJdepsMojo;
 import org.apache.maven.plugin.logging.Log;
 
 import javax.annotation.Nonnull;
@@ -23,7 +22,7 @@ public class LocalJdkProvider extends AbstractJdkProvider {
   public Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    final String toolPath = this.mojo.findJdkTool(this.mojo instanceof MvnJdepsMojo ? "jdeps" : "jlink");
+    final String toolPath = this.mojo.findJdkTool("javac");
 
     if (toolPath == null) {
       log.error("Can't find jlink in the JDK, JDK version must be 9+");
