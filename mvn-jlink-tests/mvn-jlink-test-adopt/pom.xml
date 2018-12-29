@@ -59,7 +59,8 @@
                             <output>${project.build.directory}${file.separator}jdeps.out</output>
                             <toolJdk>${jlink.jdk.path}</toolJdk>
                             <options>
-                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar
+                                </option>
                             </options>
                         </configuration>
                     </execution>

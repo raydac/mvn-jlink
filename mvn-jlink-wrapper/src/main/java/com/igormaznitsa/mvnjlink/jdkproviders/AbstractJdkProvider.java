@@ -20,24 +20,6 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected File lockCache(@Nonnull final Log log, @Nonnull final Path cacheFolder) throws IOException {
-    final File lockFile = cacheFolder.resolve(".#loadLock").toFile();
-    lockFile.deleteOnExit();
-    if (!lockFile.createNewFile()) {
-      log.info("Detected SDK loading, waiting for the process end");
-      while (lockFile.exists()) {
-        try {
-          Thread.sleep(100L);
-        } catch (InterruptedException ex) {
-          throw new IOException("Wait of SDK loading is interrupted", ex);
-        }
-      }
-      log.info("Loading process has been completed");
-    }
-    return lockFile;
-  }
-
-  @Nonnull
   protected static String escapeFileName(@Nonnull final String text) {
     final StringBuilder result = new StringBuilder(text.length());
     for (final char c : text.toCharArray()) {
@@ -62,6 +44,24 @@ public abstract class AbstractJdkProvider {
       }
     }
     return result.toString();
+  }
+
+  @Nonnull
+  protected File lockCache(@Nonnull final Log log, @Nonnull final Path cacheFolder) throws IOException {
+    final File lockFile = cacheFolder.resolve(".#loadLock").toFile();
+    lockFile.deleteOnExit();
+    if (!lockFile.createNewFile()) {
+      log.info("Detected SDK loading, waiting for the process end");
+      while (lockFile.exists()) {
+        try {
+          Thread.sleep(100L);
+        } catch (InterruptedException ex) {
+          throw new IOException("Wait of SDK loading is interrupted", ex);
+        }
+      }
+      log.info("Loading process has been completed");
+    }
+    return lockFile;
   }
 
   protected boolean isOfflineMode() {
