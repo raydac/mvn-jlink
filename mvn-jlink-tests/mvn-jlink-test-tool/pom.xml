@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.igormaznitsa</groupId>
+        <artifactId>mvn-jlink-tests</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mvn-jlink-test-tool</artifactId>
+    <packaging>jar</packaging>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.igormaznitsa</groupId>
+                <artifactId>mvn-jlink-wrapper</artifactId>
+                <executions>
+                    <execution>
+                        <id>call-tool</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jdk-tool</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.directory}${file.separator}jps.out</output>
+                            <tool>jps</tool>
+                            <timeout>5</timeout>
+                            <options>
+                                <option>-m</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>check-folder-exist</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.build.directory}${file.separator}jps.out</file>
+                                    </files>
+                                </requireFilesExist>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
