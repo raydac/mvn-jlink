@@ -149,7 +149,9 @@ public abstract class AbstractJlinkMojo extends AbstractMojo {
     final Log log = this.getLog();
 
     String toolPath = this.toolPathCache.get(toolName);
+
     if (toolPath == null) {
+      log.debug("toolJdk = " + this.toolJdk);
       if (this.toolJdk == null) {
         final Toolchain toolchain = getToolchain();
         log.debug("Toolchain: " + toolchain);

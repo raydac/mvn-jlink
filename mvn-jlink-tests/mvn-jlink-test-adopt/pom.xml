@@ -35,12 +35,29 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
+                        <id>cache-jdk-11</id>
+                        <goals>
+                            <goal>cache-jdk</goal>
+                        </goals>
+                        <configuration>
+                            <provider>ADOPT</provider>
+                            <providerConfig>
+                                <release>jdk-11</release>
+                                <arch>x64</arch>
+                                <type>jdk</type>
+                                <impl>hotspot</impl>
+                            </providerConfig>
+                            <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>call-jdeps</id>
                         <goals>
                             <goal>jdeps</goal>
                         </goals>
                         <configuration>
                             <output>${project.build.directory}${file.separator}jdeps.out</output>
+                            <toolJdk>${jlink.jdk.path}</toolJdk>
                             <options>
                                 <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
                             </options>
@@ -52,18 +69,10 @@
                             <goal>jlink</goal>
                         </goals>
                         <configuration>
-                            <provider>ADOPT</provider>
-                            <providerConfig>
-                                <release>jdk-10</release>
-                                <arch>x64</arch>
-                                <type>jdk</type>
-                                <impl>hotspot</impl>
-                            </providerConfig>
-                            <!--jdkCachePath>${project.build.directory}${file.separator}jlinkcache</jdkCachePath-->
                             <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
                             <output>${project.build.directory}${file.separator}preparedJDK</output>
                             <disableSSLcheck>true</disableSSLcheck>
-                            <toolJdk>${java.home}</toolJdk>
+                            <toolJdk>${jlink.jdk.path}</toolJdk>
                             <options>
                                 <option>--compress=2</option>
                                 <option>--no-header-files</option>

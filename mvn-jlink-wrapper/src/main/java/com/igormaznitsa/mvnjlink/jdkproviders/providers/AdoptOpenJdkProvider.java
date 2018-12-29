@@ -265,7 +265,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(targetFolder.toFile());
     }
 
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), downloadArchiveFile, targetFolder, archiveRootFolder);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, downloadArchiveFile, targetFolder, archiveRootFolder);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRootFolder);
     }

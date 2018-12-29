@@ -16,16 +16,17 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.SystemUtils.closeCloseable;
 import static java.nio.file.Files.*;
 import static java.nio.file.Paths.get;
+import static java.util.Locale.ENGLISH;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FilenameUtils.normalize;
@@ -43,15 +44,16 @@ public final class ArchUtils {
    * Upack whole archive or some its folders into a folder.
    *
    * @param logger            maven logger for logging, must not be null
+   * @param tryMakeExecutable true if to make bin files executable ones
    * @param archiveFile       the archive to be unpacked
    * @param destinationFolder the destination folder for unpacking
    * @param foldersToUnpack   folders which content should be extracted
    * @return number of extracted files
    * @throws IOException it will be thrown for error in unpack process
    */
-  public static int unpackArchiveFile(@Nonnull final Log logger, @Nonnull final Path archiveFile, @Nonnull final Path destinationFolder,
+  public static int unpackArchiveFile(@Nonnull final Log logger, final boolean tryMakeExecutable, @Nonnull final Path archiveFile, @Nonnull final Path destinationFolder,
                                       @Nonnull @MustNotContainNull final String... foldersToUnpack) throws IOException {
-    final String lcArchiveFileName = assertNotNull(archiveFile.getFileName()).toString().toLowerCase(Locale.ENGLISH);
+    final String lcArchiveFileName = assertNotNull(archiveFile.getFileName()).toString().toLowerCase(ENGLISH);
 
     final ArchEntryGetter entryGetter;
 
@@ -164,6 +166,20 @@ public final class ArchUtils {
                 }
               }
             }
+
+            if (tryMakeExecutable) {
+              final String name = assertNotNull(targetFile.getFileName()).toString().toLowerCase(ENGLISH);
+              if (Files.size(targetFile) > 0 && (name.endsWith(".bat")
+                  || name.endsWith(".cmd")
+                  || name.endsWith(".exe")
+                  || name.endsWith(".sh")
+                  || !name.contains("."))) {
+                if (!targetFile.toFile().setExecutable(true, true)) {
+                  logger.warn("Can't make executable : " + targetFile);
+                }
+              }
+            }
+
             unpackedFilesCounter++;
           }
         } else {
