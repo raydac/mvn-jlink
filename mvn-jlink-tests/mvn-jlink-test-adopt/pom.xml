@@ -75,6 +75,9 @@
                             <output>${project.build.directory}${file.separator}preparedJDK</output>
                             <disableSSLcheck>true</disableSSLcheck>
                             <toolJdk>${jlink.jdk.path}</toolJdk>
+                            <addModules>
+                                <module>java.compiler</module>
+                            </addModules>
                             <options>
                                 <option>--compress=2</option>
                                 <option>--no-header-files</option>
