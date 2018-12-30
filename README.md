@@ -8,3 +8,6 @@ At present listed providers allowed:
 * LOCAL - locally provided JDK will be used for operations
 * [ADOPT](https://adoptopenjdk.net/) - OpenJDK for needed version, architecture and OS will be downloaded and unpacked for operations
 Downloaded JDK is saved on disk in specified cache folder and in future will be used without network operations.
+
+# Goals and parameters
+![mindmap](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/mindmap.png)
