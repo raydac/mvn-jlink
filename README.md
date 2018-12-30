@@ -5,6 +5,6 @@ Since Java 9, JDK has modules and some tools which allow to build some image of 
 # What does it do?
 Mainly functionality of the plugin is very easy, it just executes tools placed in JDK bin folder like jdeps and jlink, but sometime it is needed to make image of a specific JDK version or make cross-platform JDK image, for such cases my plugin has internal mechanism which automatically downloads needed variant of OpenJDK from its provider.   
 At present listed providers allowed:
-* LOCAL - current maven executing JDK will be used for operations
+* LOCAL - locally provided JDK will be used for operations
 * [ADOPT](https://adoptopenjdk.net/) - OpenJDK for needed version, architecture and OS will be downloaded and unpacked for operations
 Downloaded JDK is saved on disk in specified cache folder and in future will be used without network operations.
