@@ -7,6 +7,7 @@ import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
+import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
@@ -25,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -165,19 +167,19 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       final ReleaseList.Release foundRelease = releaseList.findRelease(jdkRelease);
 
       if (foundRelease == null) {
-        log.error("Can't find release : " + jdkRelease);
+        log.error(String.format("Can't find release for pattern '%s'", jdkRelease));
         log.error("List of JDKs\n---------------------\n" + releaseList.makeListOfAllReleases());
-        throw new IOException("Can't find appropriate JDK release in provided list for '" + jdkRelease + '\'');
+        throw new IOException(String.format("Can't find release for pattern '%s'", jdkRelease));
       } else {
-        log.debug("Found release for name : " + jdkRelease);
+        log.debug(String.format("Found release '%s' starts with '%s'", jdkRelease, foundRelease));
       }
 
       final ReleaseList.Release.Binary foundReleaseBinary = releaseList.findBinary(foundRelease, jdkOs, jdkArch, jdkType, jdkImpl);
 
       if (foundReleaseBinary == null) {
-        log.error("Can't find release binary : " + jdkRelease);
+        log.error(String.format("Can't find binary in release '%s' : %s [os='%s',arch='%s',type='%s',impl='%s']", foundRelease, jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
         log.error(releaseList.makeListOfAllReleases());
-        throw new IOException("Can't find appropriate JDK release binary in provided list for '" + jdkRelease + '\'');
+        throw new IOException(String.format("Can't find binary in release '%s' : %s [os='%s',arch='%s',type='%s',impl='%s']", foundRelease, jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
       } else {
         log.debug("Found release binary: " + foundReleaseBinary);
 
@@ -332,6 +334,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       for (int i = 0; i < json.length(); i++) {
         this.releases.add(new Release(json.getJSONObject(i)));
       }
+      Collections.sort(this.releases);
     }
 
     @Nonnull
@@ -341,8 +344,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     @Nullable
     private Release findRelease(@Nonnull final String name) {
-      final String normalizedName = name.toLowerCase(ENGLISH);
-      final Optional<Release> release = this.releases.stream().filter(x -> x.releaseName.toLowerCase(ENGLISH).startsWith(normalizedName)).findFirst();
+      final WildCardMatcher wildCardMatcher = new WildCardMatcher(name, true);
+      final Optional<Release> release = this.releases.stream().filter(x -> wildCardMatcher.match(x.releaseName)).findFirst();
       return release.orElse(null);
     }
 
@@ -364,7 +367,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       return binary.orElse(null);
     }
 
-    private static final class Release {
+    private static final class Release implements Comparable<Release> {
 
       private final String releaseName;
       private final List<Binary> binaries = new ArrayList<>();
@@ -376,6 +379,16 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         for (int i = 0; i < binariesArray.length(); i++) {
           binaries.add(new Binary(binariesArray.getJSONObject(i)));
         }
+      }
+
+      @Override
+      public int compareTo(@Nonnull final Release release) {
+        return release.releaseName.compareTo(this.releaseName);
+      }
+
+      @Nonnull
+      public String toString(){
+        return this.releaseName;
       }
 
       @Nonnull

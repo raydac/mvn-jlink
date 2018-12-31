@@ -40,12 +40,13 @@
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
+			<disableSSLcheck>true</disableSSLcheck>
                             <provider>ADOPT</provider>
                             <providerConfig>
-                                <release>jdk8</release>
+                                <release>jdk8u192-b12</release>
                                 <arch>x64</arch>
                                 <type>jdk</type>
-                                <impl>openj9</impl>
+                                <impl>hotspot</impl>
                             </providerConfig>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
                             <jdkCachePath>${project.build.directory}${file.separator}jdkCache</jdkCachePath>

@@ -47,6 +47,7 @@
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
                             </providerConfig>
+<disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
                         </configuration>

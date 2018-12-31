@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
 import static java.util.Locale.ENGLISH;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 
 public final class WildCardMatcher {
@@ -12,7 +13,7 @@ public final class WildCardMatcher {
   private final Pattern pattern;
   private final String addressPattern;
 
-  public WildCardMatcher(@Nonnull final String txt) {
+  public WildCardMatcher(@Nonnull final String txt, final boolean caseInsensetive) {
     this.addressPattern = txt.trim();
     final StringBuilder builder = new StringBuilder();
     for (final char c : this.addressPattern.toCharArray()) {
@@ -32,7 +33,7 @@ public final class WildCardMatcher {
         break;
       }
     }
-    this.pattern = compile(builder.toString());
+    this.pattern = compile(builder.toString(), caseInsensetive ? CASE_INSENSITIVE : 0);
   }
 
   public boolean match(@Nonnull final String txt) {
