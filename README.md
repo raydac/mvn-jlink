@@ -115,6 +115,31 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 
 ## Goal `jdk-tool`
 It is a universal goal, it allows to make call to any tool situated in `JDK/bin` and save its output into files.
+### Example
+The example calls jps tool from provided tool JDK with 5 seconds timeout and its output will be written into `jps.out` file.
+```xml
+<plugin>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink-wrapper</artifactId>
+    <executions>
+        <execution>
+            <id>call-tool</id>
+            <phase>package</phase>
+            <goals>
+                <goal>jdk-tool</goal>
+            </goals>
+            <configuration>
+                <output>${project.build.directory}${file.separator}jps.out</output>
+                <tool>jps</tool>
+                <timeout>5</timeout>
+                <options>
+                    <option>-m</option>
+                </options>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
 
 # Mind Map of the plug-in
 ![mindmap](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/mindmap.png)
