@@ -7,8 +7,8 @@ Functionality of the plugin is very easy, it just provides way to execute tools 
 
 At present listed JDK providers allowed:
 * LOCAL - locally provided JDK will be used for operations
-* [ADOPT](https://adoptopenjdk.net/) - OpenJDK for needed version, architecture and OS will be downloaded and unpacked for operations
-Downloaded JDK is saved on disk in specified cache folder and in future will be used without network operations.
+* [ADOPT](https://adoptopenjdk.net/) - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
+* [LIBERICA](https://www.bell-sw.com/java.html) - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
 
 # Goals and parameters
 The plug-in provides four goals:
