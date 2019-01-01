@@ -28,11 +28,11 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
-public class BellSwOpenJdkProvider extends AbstractJdkProvider {
+public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   private static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
 
-  public BellSwOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
+  public LibericaOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
 
@@ -54,7 +54,7 @@ public class BellSwOpenJdkProvider extends AbstractJdkProvider {
     final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
-    final Path cachedJdkPath = cacheFolder.resolve(String.format("BLLSW_%s%s_%s_%s", jdkType, jdkVersion, jdkOs, jdkArch));
+    final Path cachedJdkPath = cacheFolder.resolve(String.format("LIBERICA_%s%s_%s_%s", jdkType, jdkVersion, jdkOs, jdkArch));
 
     final Path result;
 

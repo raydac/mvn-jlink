@@ -9,7 +9,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-bellsoft</artifactId>
+    <artifactId>mvn-jlink-test-liberica</artifactId>
     <packaging>jar</packaging>
 
     <build>
