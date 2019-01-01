@@ -142,7 +142,7 @@ public final class HttpUtils {
       if (ignoreForAddresses.length > 0) {
         matchers = new WildCardMatcher[ignoreForAddresses.length];
         for (int i = 0; i < ignoreForAddresses.length; i++) {
-          matchers[i] = new WildCardMatcher(ignoreForAddresses[i],true);
+          matchers[i] = new WildCardMatcher(ignoreForAddresses[i], true);
         }
       } else {
         matchers = new WildCardMatcher[0];

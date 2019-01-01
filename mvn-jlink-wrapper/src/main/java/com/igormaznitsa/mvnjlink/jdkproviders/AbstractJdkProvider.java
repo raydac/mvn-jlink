@@ -4,7 +4,6 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.http.HttpRequest;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -28,9 +27,10 @@ import static org.apache.commons.io.IOUtils.copy;
 
 public abstract class AbstractJdkProvider {
 
-  @FunctionalInterface
-  public interface IoLoader {
-    void doLoad(@Nonnull final Path destinationFolder) throws IOException;
+  protected final AbstractJdkToolMojo mojo;
+
+  public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
+    this.mojo = assertNotNull(mojo);
   }
 
   protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
@@ -38,12 +38,6 @@ public abstract class AbstractJdkProvider {
     if (notFoundAttribute.isPresent()) {
       throw new IllegalArgumentException(String.format("Parameter named '%s' must be presented", notFoundAttribute.get()));
     }
-  }
-
-  protected final AbstractJdkToolMojo mojo;
-
-  public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
-    this.mojo = assertNotNull(mojo);
   }
 
   @Nonnull
@@ -71,6 +65,13 @@ public abstract class AbstractJdkProvider {
       }
     }
     return result.toString();
+  }
+
+  @Nonnull
+  protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
+    try (final InputStream in = newInputStream(file)) {
+      return sha256Hex(in);
+    }
   }
 
   @Nonnull
@@ -131,14 +132,7 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
-    try (final InputStream in = newInputStream(file)) {
-      return sha256Hex(in);
-    }
-  }
-
-  @Nonnull
-  protected String doHttpGetText(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull @MustNotContainNull String ... acceptedContent) throws IOException {
+  protected String doHttpGetText(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull @MustNotContainNull String... acceptedContent) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
     doGetRequest(client, url, this.mojo.getProxy(), x -> {
       try {
@@ -206,4 +200,9 @@ public abstract class AbstractJdkProvider {
 
   @Nonnull
   public abstract Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
+
+  @FunctionalInterface
+  public interface IoLoader {
+    void doLoad(@Nonnull final Path destinationFolder) throws IOException;
+  }
 }

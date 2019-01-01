@@ -3,7 +3,6 @@ package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
-import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
@@ -15,7 +14,6 @@ import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +23,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static java.nio.file.Files.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.commons.io.IOUtils.copy;
 
 public class BellSwOpenJdkProvider extends AbstractJdkProvider {
 
@@ -38,101 +34,6 @@ public class BellSwOpenJdkProvider extends AbstractJdkProvider {
 
   public BellSwOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
-  }
-
-  private static class ReleaseList {
-    @Nonnull
-    @MustNotContainNull
-    public List<Release> find(@Nonnull final String type, @Nonnull final String version, @Nonnull final String os, @Nonnull final String arch) {
-      final WildCardMatcher matcher = new WildCardMatcher(version, true);
-      return this.releases.stream()
-          .filter(x -> x.type.equalsIgnoreCase(type))
-          .filter(x -> x.os.equalsIgnoreCase(os))
-          .filter(x -> x.arch.equalsIgnoreCase(arch))
-          .filter(x -> matcher.match(x.version)).collect(toList());
-    }
-
-    private static class Release {
-
-      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
-
-      private final String type;
-      private final String version;
-      private final String os;
-      private final String arch;
-      private final String fileName;
-      private final String link;
-      private final String mime;
-      private final String extension;
-      private final long size;
-
-      private Release(
-          @Nonnull final String fileName,
-          @Nonnull final String link,
-          @Nonnull final String mime,
-          final long size
-      ) {
-        this.fileName = fileName;
-        this.link = link;
-        this.mime = mime;
-        this.size = size;
-        final Matcher matcher = BELLSOFT_FILENAME_PATTERN.matcher(fileName);
-        if (matcher.find()) {
-          this.type = matcher.group(1);
-          this.version = matcher.group(2);
-          this.os = matcher.group(3);
-          this.arch = matcher.group(4);
-          this.extension = matcher.group(5);
-        } else {
-          throw new IllegalArgumentException("Can't parse file name: " + fileName);
-        }
-      }
-
-      @Nonnull
-      @Override
-      public String toString() {
-        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']", this.type, this.version, this.os, this.arch, this.extension);
-      }
-    }
-
-    private final List<Release> releases = new ArrayList<>();
-
-    private ReleaseList(@Nonnull final Log log, @Nonnull final String json) {
-      final JSONArray array = new JSONArray(json);
-      for (int i = 0; i < array.length(); i++) {
-        final JSONObject release = array.getJSONObject(i);
-        if (!release.has("tag_name")) {
-          continue;
-        }
-
-        final boolean draft = release.getBoolean("draft");
-        final boolean prerelease = release.getBoolean("prerelease");
-        if (draft || prerelease) {
-          continue;
-        }
-        if (release.has("assets")) {
-          final JSONArray assets = release.getJSONArray("assets");
-          for (int a = 0; a < assets.length(); a++) {
-            final JSONObject asset = assets.getJSONObject(a);
-            final String fileName = asset.getString("name");
-            final String mime = asset.getString("content_type");
-            final long size = asset.getLong("size");
-
-            if (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz")) {
-              final String link = asset.getString("browser_download_url");
-              this.releases.add(new Release(fileName, link, mime, size));
-            } else {
-              log.debug("Ignoring because non-unpackable file: " + asset);
-            }
-          }
-        }
-      }
-    }
-
-    @Nonnull
-    public String makeReport() {
-      return this.releases.stream().map(Release::toString).collect(joining("\n"));
-    }
   }
 
   @Nonnull
@@ -191,7 +92,6 @@ public class BellSwOpenJdkProvider extends AbstractJdkProvider {
     return result;
   }
 
-
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nonnull final Path tempFolder,
@@ -238,6 +138,101 @@ public class BellSwOpenJdkProvider extends AbstractJdkProvider {
     } else {
       log.info("Deleting archive: " + pathToArchiveFile);
       delete(pathToArchiveFile);
+    }
+  }
+
+  private static class ReleaseList {
+    private final List<Release> releases = new ArrayList<>();
+
+    private ReleaseList(@Nonnull final Log log, @Nonnull final String json) {
+      final JSONArray array = new JSONArray(json);
+      for (int i = 0; i < array.length(); i++) {
+        final JSONObject release = array.getJSONObject(i);
+        if (!release.has("tag_name")) {
+          continue;
+        }
+
+        final boolean draft = release.getBoolean("draft");
+        final boolean prerelease = release.getBoolean("prerelease");
+        if (draft || prerelease) {
+          continue;
+        }
+        if (release.has("assets")) {
+          final JSONArray assets = release.getJSONArray("assets");
+          for (int a = 0; a < assets.length(); a++) {
+            final JSONObject asset = assets.getJSONObject(a);
+            final String fileName = asset.getString("name");
+            final String mime = asset.getString("content_type");
+            final long size = asset.getLong("size");
+
+            if (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz")) {
+              final String link = asset.getString("browser_download_url");
+              this.releases.add(new Release(fileName, link, mime, size));
+            } else {
+              log.debug("Ignoring because non-unpackable file: " + asset);
+            }
+          }
+        }
+      }
+    }
+
+    @Nonnull
+    @MustNotContainNull
+    public List<Release> find(@Nonnull final String type, @Nonnull final String version, @Nonnull final String os, @Nonnull final String arch) {
+      final WildCardMatcher matcher = new WildCardMatcher(version, true);
+      return this.releases.stream()
+          .filter(x -> x.type.equalsIgnoreCase(type))
+          .filter(x -> x.os.equalsIgnoreCase(os))
+          .filter(x -> x.arch.equalsIgnoreCase(arch))
+          .filter(x -> matcher.match(x.version)).collect(toList());
+    }
+
+    @Nonnull
+    public String makeReport() {
+      return this.releases.stream().map(Release::toString).collect(joining("\n"));
+    }
+
+    private static class Release {
+
+      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
+
+      private final String type;
+      private final String version;
+      private final String os;
+      private final String arch;
+      private final String fileName;
+      private final String link;
+      private final String mime;
+      private final String extension;
+      private final long size;
+
+      private Release(
+          @Nonnull final String fileName,
+          @Nonnull final String link,
+          @Nonnull final String mime,
+          final long size
+      ) {
+        this.fileName = fileName;
+        this.link = link;
+        this.mime = mime;
+        this.size = size;
+        final Matcher matcher = BELLSOFT_FILENAME_PATTERN.matcher(fileName);
+        if (matcher.find()) {
+          this.type = matcher.group(1);
+          this.version = matcher.group(2);
+          this.os = matcher.group(3);
+          this.arch = matcher.group(4);
+          this.extension = matcher.group(5);
+        } else {
+          throw new IllegalArgumentException("Can't parse file name: " + fileName);
+        }
+      }
+
+      @Nonnull
+      @Override
+      public String toString() {
+        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']", this.type, this.version, this.os, this.arch, this.extension);
+      }
     }
   }
 
