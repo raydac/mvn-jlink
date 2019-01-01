@@ -8,7 +8,6 @@ import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -18,10 +17,7 @@ import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,10 +37,7 @@ import static java.nio.file.Files.*;
 import static java.util.Locale.ENGLISH;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Stream.of;
-import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.commons.io.IOUtils.copy;
 
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
@@ -54,42 +47,13 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   }
 
   @Nonnull
-  private static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
-    try (final InputStream in = newInputStream(file)) {
-      return sha256Hex(in);
-    }
-  }
-
-  private static void assertAttributes(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... attributes) {
-    final Optional<String> notFoundAttribute = of(attributes).filter(x -> !attrMap.containsKey(x)).findAny();
-    if (notFoundAttribute.isPresent()) {
-      throw new IllegalArgumentException(String.format("Attribute '%s' must be presented", notFoundAttribute.get()));
-    }
-  }
-
-  @Nonnull
   @Override
   public Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertAttributes(config, "release", "arch", "type", "impl");
+    assertParameters(config, "release", "arch", "type", "impl");
 
-    final String defaultOs;
-    if (SystemUtils.IS_OS_MAC) {
-      defaultOs = "mac";
-    } else if (SystemUtils.IS_OS_WINDOWS) {
-      defaultOs = "windows";
-    } else if (SystemUtils.IS_OS_AIX) {
-      defaultOs = "aix";
-    } else if (SystemUtils.IS_OS_FREE_BSD) {
-      defaultOs = "freebsd";
-    } else if (SystemUtils.IS_OS_IRIX) {
-      defaultOs = "irix";
-    } else if (SystemUtils.IS_OS_ZOS) {
-      defaultOs = "zos";
-    } else {
-      defaultOs = "linux";
-    }
+    final String defaultOs = findCurrentOs("mac");
 
     log.debug("Default OS recognized as: " + defaultOs);
 
@@ -113,10 +77,11 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
     final Path cachedJdkPath = cacheFolder.resolve(cachedJdkFolderName);
+    final Path result;
 
     if (isDirectory(cachedJdkPath)) {
       log.info("Found cached JDK: " + cachedJdkFolderName);
-      return cachedJdkPath;
+      result = cachedJdkPath;
     } else {
       if (isOfflineMode()) {
         throw new FailureException("Unpacked JDK (" + cachedJdkFolderName + ") is not found, stopping process because offline mode is active");
@@ -183,45 +148,20 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       } else {
         log.debug("Found release binary: " + foundReleaseBinary);
 
-        if (!isDirectory(cachedJdkPath)) {
-          final Path tmpCachedJdkPath = cachedJdkPath.getParent().resolve(".#" + cachedJdkPath.getFileName().toString());
-          File lockFile = null;
-          boolean unlocked;
-
-          try {
-            lockFile = this.lockCache(log, cacheFolder);
-            if (isDirectory(cachedJdkPath)) {
-              log.debug("Detected already presented JDK folder so that loading ignored: " + cachedJdkPath);
-            } else {
-              log.debug("Locked cache, lock file: " + cacheFolder);
-              downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tmpCachedJdkPath, foundRelease.releaseName, keepArchiveFile);
-              if (tmpCachedJdkPath.toFile().renameTo(cachedJdkPath.toFile())) {
-                log.debug("renamed " + tmpCachedJdkPath.getFileName() + " to " + cachedJdkPath.getFileName());
-              } else {
-                log.error("Can't rename " + tmpCachedJdkPath.getFileName() + " to " + cachedJdkPath.getFileName());
-                throw new IOException("Can't rename unpacked temp folder");
-              }
-            }
-          } finally {
-            unlocked = lockFile.delete();
-            log.debug("status of unlock file delete: " + unlocked);
-          }
-
-          if (!unlocked) {
-            throw new IOException("Can't delete lock file: " + lockFile);
-          }
-        }
+        result = loadJdkIntoCacheIfNotExist(cacheFolder, cachedJdkFolderName, tempFolder ->
+            downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tempFolder, foundRelease.releaseName, keepArchiveFile)
+        );
       }
     }
-    return cachedJdkPath;
+    return result;
   }
 
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nonnull final ReleaseList.Release.Binary binary,
-      @Nonnull final Path cacheFolder,
-      @Nonnull final Path targetFolder,
-      @Nonnull final String archiveRootFolder,
+      @Nonnull final Path workFolder,
+      @Nonnull final Path destUnpackFolder,
+      @Nonnull final String nameOfArchiveRoot,
       final boolean keepArchiveFile
   ) throws IOException {
 
@@ -229,41 +169,29 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
-      final AtomicReference<String> hashRef = new AtomicReference<>();
-      try {
-        doGetRequest(client, binary.linkHash, this.mojo.getProxy(), x -> {
-          try {
-            hashRef.set(EntityUtils.toString(x));
-          } catch (IOException ex) {
-            throw new IORuntimeWrapperException(ex);
-          }
-        }, "text/plain");
-      } catch (IORuntimeWrapperException ex) {
-        throw ex.getWrapped();
-      }
-
-      digestCode = StringUtils.extractFileHash(hashRef.get());
+      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, "text/plain"));
       log.info("Expected archive hash: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
       digestCode = "";
     }
 
-    final Path downloadArchiveFile = cacheFolder.resolve(binary.binaryName);
+    final Path archiveFile = workFolder.resolve(binary.binaryName);
 
     boolean doLoadArchive = true;
 
-    if (isRegularFile(downloadArchiveFile)) {
-      log.info("Detected loaded archive: " + downloadArchiveFile.getFileName());
+    if (isRegularFile(archiveFile)) {
+      log.info("Detected archive: " + archiveFile.getFileName());
 
       if (digestCode.isEmpty()) {
-        log.warn("Because digest is undefined, the existing archive will be deleted!");
-        if (!Files.deleteIfExists(downloadArchiveFile)) {
-          throw new IOException("Detected cached archive '" + downloadArchiveFile.getFileName() + "', which can't be deleted");
+        log.warn("Because digest is undefined, archive will be deleted!");
+
+        if (!Files.deleteIfExists(archiveFile)) {
+          throw new IOException("Detected archive '" + archiveFile.getFileName() + "', which can't be deleted");
         }
-      } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(downloadArchiveFile))) {
+      } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(archiveFile))) {
         log.warn("Calculated hash for found archive is wrong, the archive will be reloaded!");
-        delete(downloadArchiveFile);
+        delete(archiveFile);
       } else {
         log.info("Found archive hash is OK");
         doLoadArchive = false;
@@ -273,58 +201,41 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     if (doLoadArchive) {
       log.info(String.format("Loading archive, %d kB : %s", binary.size / 1024L, binary.link));
 
-      final String archiveHash = getArchiveAndSave(client, binary.link, downloadArchiveFile);
+      final String archiveSha256 = doHttpGetIntoFile(client, binary.link, archiveFile);
 
-      log.info("Archive has been loaded successfuly, hash is " + archiveHash);
+      log.info("Archive has been loaded successfuly, hash is " + archiveSha256);
 
-      if (!digestCode.isEmpty()) {
-        if (digestCode.equalsIgnoreCase(archiveHash)) {
-          log.info("Hash code of downloaded archive is OK");
-        } else {
-          throw new IOException("Loaded archive has wrong hash: " + digestCode + " != " + archiveHash);
-        }
+      if (digestCode.isEmpty()) {
+        log.warn("Don't check hash because etalon hash is not provided by host");
       } else {
-        log.warn("Etalon hash is not provided so hash check is ignored");
+        if (digestCode.equalsIgnoreCase(archiveSha256)) {
+          log.info("Archive hash is OK");
+        } else {
+          throw new IOException("Archive hash is BAD: " + digestCode + " != " + archiveSha256);
+        }
       }
     } else {
       log.info("Archive loading is skipped");
     }
 
-    if (isDirectory(targetFolder)) {
-      log.info("Detected existing target folder, deleting it: " + targetFolder);
-      deleteDirectory(targetFolder.toFile());
+    if (isDirectory(destUnpackFolder)) {
+      log.info("Detected existing target folder, deleting it: " + destUnpackFolder.getFileName());
+      deleteDirectory(destUnpackFolder.toFile());
     }
 
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, downloadArchiveFile, targetFolder, archiveRootFolder);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, archiveFile, destUnpackFolder, nameOfArchiveRoot);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRootFolder);
+      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + nameOfArchiveRoot);
     }
-    log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
+    log.debug(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.toString()));
+    log.info(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.getFileName()));
 
     if (keepArchiveFile) {
-      log.info("Keep downloaded archive file in cache: " + downloadArchiveFile);
+      log.info("Keep downloaded archive file in cache: " + archiveFile);
     } else {
-      log.info("Deleting archive: " + downloadArchiveFile);
-      delete(downloadArchiveFile);
+      log.info("Deleting archive: " + archiveFile);
+      delete(archiveFile);
     }
-  }
-
-  @Nonnull
-  private String getArchiveAndSave(@Nonnull final HttpClient client, @Nonnull final String link, @Nonnull final Path file) throws IOException {
-    try {
-      doGetRequest(client, link, this.mojo.getProxy(), httpEntity -> {
-        try {
-          try (final OutputStream fileOutStream = newOutputStream(file)) {
-            copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
-          }
-        } catch (IOException ex) {
-          throw new IORuntimeWrapperException(ex);
-        }
-      }, "application/x-gzip", "application/zip", "application/gzip");
-    } catch (IORuntimeWrapperException ex) {
-      throw ex.getWrapped();
-    }
-    return calcSha256ForFile(file);
   }
 
   private static final class ReleaseList {
@@ -387,7 +298,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       }
 
       @Nonnull
-      public String toString(){
+      public String toString() {
         return this.releaseName;
       }
 

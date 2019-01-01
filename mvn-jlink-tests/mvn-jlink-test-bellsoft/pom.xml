@@ -9,7 +9,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-adopt</artifactId>
+    <artifactId>mvn-jlink-test-bellsoft</artifactId>
     <packaging>jar</packaging>
 
     <build>
@@ -40,12 +40,11 @@
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
-                            <provider>ADOPT</provider>
+                            <provider>BELLSOFT</provider>
                             <providerConfig>
-                                <release>jdk-11*</release>
-                                <arch>x64</arch>
                                 <type>jdk</type>
-                                <impl>hotspot</impl>
+                                <version>11.0.1</version>
+                                <arch>amd64</arch>
                             </providerConfig>
                             <disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>

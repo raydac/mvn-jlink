@@ -81,7 +81,7 @@ public final class HttpUtils {
       final StatusLine statusLine = response.getStatusLine();
 
       if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
-        throw new IOException(String.format("Can't load SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+        throw new IOException(String.format("Can't doLoad SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
       }
 
       final HttpEntity entity = response.getEntity();
@@ -142,7 +142,7 @@ public final class HttpUtils {
       if (ignoreForAddresses.length > 0) {
         matchers = new WildCardMatcher[ignoreForAddresses.length];
         for (int i = 0; i < ignoreForAddresses.length; i++) {
-          matchers[i] = new WildCardMatcher(ignoreForAddresses[i]);
+          matchers[i] = new WildCardMatcher(ignoreForAddresses[i],true);
         }
       } else {
         matchers = new WildCardMatcher[0];
