@@ -59,6 +59,27 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 
 ## Goal `jdeps`
 The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of modules needed by a JAR and save result into a file.
+### Example
+The example calls jdeps tool from JDK whith path provided in `jlink.jdk.path` over project jar file and saves output into `jdeps.out` situated in project build folder.
+```xml
+<plugin>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink-wrapper</artifactId>
+    <execution>
+        <id>call-jdeps</id>
+        <goals>
+            <goal>jdeps</goal>
+        </goals>
+        <configuration>
+            <output>${project.build.directory}${file.separator}jdeps.out</output>
+            <toolJdk>${jlink.jdk.path}</toolJdk>
+            <options>
+                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+            </options>
+        </configuration>
+    </execution>
+</plugin>
+```
 
 ## Goal `jlink`
 The goal automates work with `JDK/bin/jlink` utility, it allows to build JDK image based on `jdeps` output.
