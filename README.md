@@ -28,7 +28,7 @@ The plug-in provides four goals:
 ## Goal `cache-jdk`
 The goal just downloads JDK from a provider, unpack it and placing the JDK folder path into Maven custom named project property which can be used by other plug-ins.
 ### Example
-The example of configuration caches OpenJDK from ADOPT provider and saves path to its folder into `jlink.jdk.path` project property
+The example of configuration caches OpenJDK from ADOPT provider in project build folder and then save path to its folder into `jlink.jdk.path` project property
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
