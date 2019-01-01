@@ -27,6 +27,35 @@ The plug-in provides four goals:
 
 ## Goal `cache-jdk`
 The goal just downloads JDK from a provider, unpack it and placing the JDK folder path into Maven custom named project property which can be used by other plug-ins.
+### Example
+The example of configuration caches OpenJDK from ADOPT provider and saves path to its folder into `jlink.jdk.path` project property
+```xml
+<plugin>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink-wrapper</artifactId>
+    <executions>
+        <execution>
+            <id>cache-jdk-8</id>
+            <goals>
+                <goal>cache-jdk</goal>
+            </goals>
+            <configuration>
+                <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
+                <jdkCachePath>${project.build.directory}${file.separator}jdkCache</jdkCachePath>
+
+                <provider>ADOPT</provider>
+                <providerConfig>
+                    <release>jdk8u192-b12</release>
+                    <arch>x64</arch>
+                    <type>jdk</type>
+                    <impl>hotspot</impl>
+                </providerConfig>
+
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
 
 ## Goal `jdeps`
 The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of modules needed by a JAR and save result into a file.
