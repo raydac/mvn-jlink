@@ -60,29 +60,58 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 ## Goal `jdeps`
 The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of modules needed by a JAR and save result into a file.
 ### Example
-The example calls jdeps tool from JDK whith path provided in `jlink.jdk.path` over project jar file and saves output into `jdeps.out` situated in project build folder.
+The example calls jdeps tool from provided JDK over project jar file and saves output into `jdeps.out` situated in project build folder.
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <execution>
-        <id>call-jdeps</id>
-        <goals>
-            <goal>jdeps</goal>
-        </goals>
-        <configuration>
-            <output>${project.build.directory}${file.separator}jdeps.out</output>
-            <toolJdk>${jlink.jdk.path}</toolJdk>
-            <options>
-                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
-            </options>
-        </configuration>
-    </execution>
+    <executions>
+        <execution>
+            <id>call-jdeps</id>
+            <goals>
+                <goal>jdeps</goal>
+            </goals>
+            <configuration>
+                <output>${project.build.directory}${file.separator}jdeps.out</output>
+                <options>
+                    <option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+                </options>
+            </configuration>
+        </execution>
+    </executions>
 </plugin>
 ```
 
 ## Goal `jlink`
 The goal automates work with `JDK/bin/jlink` utility, it allows to build JDK image based on `jdeps` output.
+### Example
+The example calls `jlink` from provided JDK and build JDK version based on report provided by `jdeps` tool in `jdeps.out` file, also `java.compiler` module will be added. The prepared JDK version will be presented in project build folder, subfolder `preparedJDK`
+```xml
+<plugin>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink-wrapper</artifactId>
+    <executions>
+        <execution>
+            <id>call-jlink</id>
+            <goals>
+                <goal>jlink</goal>
+            </goals>
+            <configuration>
+                <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
+                <output>${project.build.directory}${file.separator}preparedJDK</output>
+                <addModules>
+                    <module>java.compiler</module>
+                </addModules>
+                <options>
+                    <option>--compress=2</option>
+                    <option>--no-header-files</option>
+                    <option>--no-man-pages</option>
+                </options>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
 
 ## Goal `jdk-tool`
 It is a universal goal, it allows to make call to any tool situated in `JDK/bin` and save its output into files.
