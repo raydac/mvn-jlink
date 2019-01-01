@@ -199,7 +199,7 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  public abstract Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException;
+  public abstract Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException;
 
   @FunctionalInterface
   public interface IoLoader {

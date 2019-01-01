@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -48,7 +49,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "release", "arch", "type", "impl");
@@ -290,6 +291,21 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         for (int i = 0; i < binariesArray.length(); i++) {
           binaries.add(new Binary(binariesArray.getJSONObject(i)));
         }
+      }
+
+      @Override
+      public boolean equals(@Nullable final Object obj) {
+        if (!(obj instanceof Release)) {
+          return false;
+        }
+        final Release release = (Release) obj;
+        return Objects.equals(this.releaseName, release.releaseName) &&
+            Objects.equals(this.binaries, release.binaries);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(this.releaseName, this.binaries);
       }
 
       @Override

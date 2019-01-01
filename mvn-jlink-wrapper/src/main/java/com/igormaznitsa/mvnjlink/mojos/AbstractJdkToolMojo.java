@@ -179,7 +179,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   @Nonnull
   protected Path getSourceJdkFolderFromProvider() throws MojoExecutionException, MojoFailureException {
     try {
-      return this.getProvider().makeInstance(this).prepareSourceJdkFolder(this.getProviderConfig());
+      return this.getProvider().makeInstance(this).getPathToJdk(this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
     } catch (FailureException ex) {

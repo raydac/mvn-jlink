@@ -19,7 +19,7 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path prepareSourceJdkFolder(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     final String toolPath = this.mojo.findJdkTool("javac");
