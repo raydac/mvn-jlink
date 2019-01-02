@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
+import static java.lang.String.format;
 import static java.nio.file.Files.*;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
@@ -36,7 +37,7 @@ public abstract class AbstractJdkProvider {
   protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
     final Optional<String> notFoundAttribute = of(names).filter(x -> !attrMap.containsKey(x)).findAny();
     if (notFoundAttribute.isPresent()) {
-      throw new IllegalArgumentException(String.format("Parameter named '%s' must be presented", notFoundAttribute.get()));
+      throw new IllegalArgumentException(format("Parameter named '%s' must be presented", notFoundAttribute.get()));
     }
   }
 
@@ -147,7 +148,7 @@ public abstract class AbstractJdkProvider {
   @Nonnull
   protected String doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
     final Log log = this.mojo.getLog();
-    log.debug(String.format("Getting file %s into %s", url, targetFile.toString()));
+    log.debug(format("Getting file %s into %s", url, targetFile.toString()));
     try {
       doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
         boolean showProgress = false;
@@ -158,6 +159,9 @@ public abstract class AbstractJdkProvider {
             final long contentSize = httpEntity.getContentLength();
             final InputStream inStream = httpEntity.getContent();
 
+            final int PROGRESSBAR_WIDTH = 10;
+            final String LOADING_TITLE = format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
+
             showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
 
             long downloadByteCounter = 0L;
@@ -165,7 +169,7 @@ public abstract class AbstractJdkProvider {
             int lastShownProgress = -1;
 
             if (showProgress) {
-              lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+              lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
             }
 
             while (!Thread.currentThread().isInterrupted()) {
@@ -178,7 +182,7 @@ public abstract class AbstractJdkProvider {
               downloadByteCounter += length;
 
               if (showProgress) {
-                lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+                lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
               }
             }
             fileOutStream.flush();
