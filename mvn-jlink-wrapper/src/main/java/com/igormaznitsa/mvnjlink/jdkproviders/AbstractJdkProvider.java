@@ -3,6 +3,8 @@ package com.igormaznitsa.mvnjlink.jdkproviders;
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import com.igormaznitsa.mvnjlink.utils.StringUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
@@ -150,12 +152,41 @@ public abstract class AbstractJdkProvider {
     log.debug(String.format("Getting file %s into %s", url, targetFile.toString()));
     try {
       doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
+        boolean showProgress = false;
         try {
           try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
-            copy(httpEntity.getContent(), fileOutStream, 128 * 1024);
+            final byte [] buffer = new byte[1024*1024];
+
+            final long contentSize = httpEntity.getContentLength();
+            final InputStream inStream = httpEntity.getContent();
+
+            showProgress = contentSize>0L && !this.mojo.getSession().isParallel();
+
+            long downloadByteCounter = 0L;
+
+            int lastShownProgress = -1;
+
+            if (showProgress)
+              lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+
+            while(!Thread.currentThread().isInterrupted()){
+              final int length = inStream.read(buffer);
+              if (length<0) break;
+
+              fileOutStream.write(buffer,0,length);
+              downloadByteCounter += length;
+
+              if (showProgress)
+                lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+            }
+            fileOutStream.flush();
           }
         } catch (IOException ex) {
           throw new IORuntimeWrapperException(ex);
+        } finally {
+          if (showProgress) {
+            System.out.println();
+          }
         }
       }, acceptedContent);
     } catch (IORuntimeWrapperException ex) {

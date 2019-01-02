@@ -147,7 +147,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   }
 
   @Nonnull
-  protected MavenSession getSession() {
+  public MavenSession getSession() {
     return this.session;
   }
 
