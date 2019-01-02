@@ -4,7 +4,6 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
@@ -25,7 +24,6 @@ import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static java.nio.file.Files.*;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
-import static org.apache.commons.io.IOUtils.copy;
 
 public abstract class AbstractJdkProvider {
 
@@ -155,29 +153,33 @@ public abstract class AbstractJdkProvider {
         boolean showProgress = false;
         try {
           try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
-            final byte [] buffer = new byte[1024*1024];
+            final byte[] buffer = new byte[1024 * 1024];
 
             final long contentSize = httpEntity.getContentLength();
             final InputStream inStream = httpEntity.getContent();
 
-            showProgress = contentSize>0L && !this.mojo.getSession().isParallel();
+            showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
 
             long downloadByteCounter = 0L;
 
             int lastShownProgress = -1;
 
-            if (showProgress)
+            if (showProgress) {
               lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+            }
 
-            while(!Thread.currentThread().isInterrupted()){
+            while (!Thread.currentThread().isInterrupted()) {
               final int length = inStream.read(buffer);
-              if (length<0) break;
+              if (length < 0) {
+                break;
+              }
 
-              fileOutStream.write(buffer,0,length);
+              fileOutStream.write(buffer, 0, length);
               downloadByteCounter += length;
 
-              if (showProgress)
+              if (showProgress) {
                 lastShownProgress = StringUtils.printTextProgress("Loading ", downloadByteCounter, contentSize, 10, lastShownProgress);
+              }
             }
             fileOutStream.flush();
           }

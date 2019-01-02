@@ -4,7 +4,6 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,19 +36,20 @@ public final class StringUtils {
     builder.append(text);
     builder.append("[");
 
-    final int progress = max(0, min(progressBarWidth,(int)Math.round(progressBarWidth * ((double)value / (double)maxValue))));
+    final int progress = max(0, min(progressBarWidth, (int) Math.round(progressBarWidth * ((double) value / (double) maxValue))));
     int nextValue = progress;
 
-    for(int i=0;i<progress;i++) {
+    for (int i = 0; i < progress; i++) {
       builder.append('▒');
     }
-    for(int i=progress;i<progressBarWidth;i++){
+    for (int i = progress; i < progressBarWidth; i++) {
       builder.append('-');
     }
     builder.append("]\u001B[?25h");
 
     if (nextValue != lastValue) {
       System.out.print(builder.toString());
+      System.out.flush();
     }
 
     return nextValue;
