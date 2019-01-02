@@ -17,7 +17,7 @@ Since Java 9, JDK has modules (project Jigsaw) and it provides more or less smoo
 # What does it do?
 Functionality of the plugin is very easy, it just provides way to execute tools placed in JDK/bin folder like jdeps and jlink, but sometime it is needed to make image of a specific JDK, for such cases my plugin has internal mechanism which automatically downloads needed variant of OpenJDK from a provider, unpack it and the JDK can be used to build JDK image.   
 
-At present listed JDK providers allowed:
+At present the plug-in supports listed OpenJDK providers:
 * LOCAL - locally provided JDK will be used for operations
 * [ADOPT](https://adoptopenjdk.net/) - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
 * [LIBERICA](https://www.bell-sw.com/java.html) - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
