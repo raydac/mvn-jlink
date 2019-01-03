@@ -33,6 +33,7 @@ import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static java.nio.file.Files.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
@@ -91,7 +92,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
         final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
-        final ReleaseList.Release releaseToLoad = tarRelease.isPresent() ? tarRelease.get() : zipRelease.get();
+        final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
         result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
             downloadAndUnpack(httpClient, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
         );
@@ -129,7 +130,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
 
-      final Optional<Header> etag = Stream.of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
+      final Optional<Header> etag = of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
 
       if (etag.isPresent()) {
         final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
