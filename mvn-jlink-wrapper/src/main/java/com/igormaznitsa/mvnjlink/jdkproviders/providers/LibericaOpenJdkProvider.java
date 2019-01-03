@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static java.nio.file.Files.*;
 import static java.util.stream.Collectors.joining;
@@ -84,7 +85,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
         final ReleaseList.Release releaseToLoad = tarRelease.isPresent() ? tarRelease.get() : zipRelease.get();
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, cachedJdkPath.getFileName().toString(), tempFolder ->
+        result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
             downloadAndUnpack(httpClient, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
         );
       }
