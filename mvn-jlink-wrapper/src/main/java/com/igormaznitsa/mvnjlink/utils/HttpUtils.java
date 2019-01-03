@@ -43,7 +43,9 @@ import java.net.UnknownHostException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Stream.of;
@@ -54,7 +56,9 @@ public final class HttpUtils {
 
   }
 
-  public static void doGetRequest(
+  @Nonnull
+  @MustNotContainNull
+  public static Header[] doGetRequest(
       @Nonnull final HttpClient client,
       @Nonnull final String urlLink,
       @Nullable final ProxySettings proxySettings,
@@ -96,6 +100,7 @@ public final class HttpUtils {
     } finally {
       methodGet.releaseConnection();
     }
+    return response.getAllHeaders();
   }
 
   @Nonnull

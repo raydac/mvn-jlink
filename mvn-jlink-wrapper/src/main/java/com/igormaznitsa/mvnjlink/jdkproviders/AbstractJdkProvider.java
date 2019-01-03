@@ -1,10 +1,15 @@
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
+import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.cli.Digest;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -15,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,6 +30,7 @@ import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static java.lang.String.format;
 import static java.nio.file.Files.*;
 import static java.util.stream.Stream.of;
+import static org.apache.commons.codec.digest.DigestUtils.md5Hex;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
 public abstract class AbstractJdkProvider {
@@ -145,12 +152,26 @@ public abstract class AbstractJdkProvider {
     return result.get();
   }
 
+  /**
+   * Download content file through GET request and calculate its SHA256 hash
+   * @param client http client
+   * @param url url of the content file
+   * @param targetFile target file to save the content
+   * @param digest calculator of needed digest
+   * @param acceptedContent mime types of accepted content
+   * @return response headers
+   * @throws IOException it any transport error
+   */
+  @MustNotContainNull
   @Nonnull
-  protected String doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
+  protected Header [] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
     final Log log = this.mojo.getLog();
     log.debug(format("Loading %s into file %s", url, targetFile.toString()));
+
+    Header[] responseHeaders = null;
+
     try {
-      doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
+      responseHeaders = doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
         boolean showProgress = false;
         try {
           try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
@@ -178,6 +199,8 @@ public abstract class AbstractJdkProvider {
               lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
             }
 
+            digest.reset();
+
             while (!Thread.currentThread().isInterrupted()) {
               final int length = inStream.read(buffer);
               if (length < 0) {
@@ -185,6 +208,8 @@ public abstract class AbstractJdkProvider {
               }
 
               fileOutStream.write(buffer, 0, length);
+              digest.update(buffer, 0, length);
+
               downloadByteCounter += length;
 
               if (showProgress) {
@@ -204,7 +229,7 @@ public abstract class AbstractJdkProvider {
     } catch (IORuntimeWrapperException ex) {
       throw ex.getWrapped();
     }
-    return calcSha256ForFile(targetFile);
+    return Assertions.assertNotNull(responseHeaders);
   }
 
   @Nonnull

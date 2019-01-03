@@ -8,6 +8,9 @@ import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -20,6 +23,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -171,7 +175,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
       digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, "text/plain"));
-      log.info("Expected archive hash: " + digestCode);
+      log.info("Expected archive SHA256 digest: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
       digestCode = "";
@@ -191,7 +195,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           throw new IOException("Detected archive '" + archiveFile.getFileName() + "', which can't be deleted");
         }
       } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(archiveFile))) {
-        log.warn("Calculated hash for found archive is wrong, the archive will be reloaded!");
+        log.warn("Calculated digest for found archive is wrong, the archive will be reloaded!");
         delete(archiveFile);
       } else {
         log.info("Found archive hash is OK");
@@ -200,17 +204,19 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final String archiveSha256 = doHttpGetIntoFile(client, binary.link, archiveFile);
+      final MessageDigest digest = DigestUtils.getSha256Digest();
+      doHttpGetIntoFile(client, binary.link, archiveFile, digest);
+      final String calculatedStreamDigest = Hex.encodeHexString(digest.digest());
 
-      log.info("Archive has been loaded successfuly, hash is " + archiveSha256);
+      log.info("Archive has been loaded successfuly, calculated SHA256 digest is " + calculatedStreamDigest);
 
       if (digestCode.isEmpty()) {
         log.warn("Don't check hash because etalon hash is not provided by host");
       } else {
-        if (digestCode.equalsIgnoreCase(archiveSha256)) {
-          log.info("Archive hash is OK");
+        if (digestCode.equalsIgnoreCase(calculatedStreamDigest)) {
+          log.info("Calculated digest is equal to the provided digest");
         } else {
-          throw new IOException("Archive hash is BAD: " + digestCode + " != " + archiveSha256);
+          throw new IOException("Calculated digest is not equal to the provided digest: " + digestCode + " != " + calculatedStreamDigest);
         }
       }
     } else {
@@ -222,6 +228,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
+    log.info("Unpacking archive...");
     final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, archiveFile, destUnpackFolder, nameOfArchiveRoot);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + nameOfArchiveRoot);

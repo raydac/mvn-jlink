@@ -7,6 +7,9 @@ import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
 import org.json.JSONArray;
@@ -15,12 +18,15 @@ import org.json.JSONObject;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
@@ -93,6 +99,8 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     return result;
   }
 
+  private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
+
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nonnull final Path tempFolder,
@@ -113,8 +121,32 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final String archiveHash = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, release.mime);
-      log.info("Archive has been loaded successfuly, hash is " + archiveHash);
+      final MessageDigest digest = DigestUtils.getMd5Digest();
+      final Header[]  responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, release.mime);
+
+      log.debug("Response headers: "+ Arrays.toString(responseHeaders));
+
+      final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
+
+      log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
+
+      final Optional<Header> etag = Stream.of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
+
+      if (etag.isPresent()) {
+        final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
+          if (matcher.find()) {
+            final String extractedEtag = matcher.group(1);
+            if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
+              log.info("Calculated MD5 is equal to the ETag in response");
+            } else {
+              log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
+            }
+          } else {
+            log.error("Can't extract MD5 from ETag: "+etag.get().getValue());
+          }
+      } else {
+        log.warn("ETag is not presented in the response or its value can't be parsed");
+      }
 
     } else {
       log.info("Archive loading is skipped");
@@ -126,6 +158,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     }
 
     final String archiveRoorName = "jdk-" + release.version;
+    log.info("Unpacking archive...");
     final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder, archiveRoorName);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
