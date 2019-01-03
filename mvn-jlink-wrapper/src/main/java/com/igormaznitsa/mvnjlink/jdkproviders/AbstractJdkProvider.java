@@ -5,9 +5,6 @@ import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.cli.Digest;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
@@ -30,7 +27,6 @@ import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static java.lang.String.format;
 import static java.nio.file.Files.*;
 import static java.util.stream.Stream.of;
-import static org.apache.commons.codec.digest.DigestUtils.md5Hex;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
 public abstract class AbstractJdkProvider {
@@ -154,17 +150,18 @@ public abstract class AbstractJdkProvider {
 
   /**
    * Download content file through GET request and calculate its SHA256 hash
-   * @param client http client
-   * @param url url of the content file
-   * @param targetFile target file to save the content
-   * @param digest calculator of needed digest
+   *
+   * @param client          http client
+   * @param url             url of the content file
+   * @param targetFile      target file to save the content
+   * @param digest          calculator of needed digest
    * @param acceptedContent mime types of accepted content
    * @return response headers
    * @throws IOException it any transport error
    */
   @MustNotContainNull
   @Nonnull
-  protected Header [] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
+  protected Header[] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
     final Log log = this.mojo.getLog();
     log.debug(format("Loading %s into file %s", url, targetFile.toString()));
 

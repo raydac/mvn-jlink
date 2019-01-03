@@ -38,6 +38,7 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   private static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
+  private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   public LibericaOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
@@ -99,8 +100,6 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     return result;
   }
 
-  private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
-
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nonnull final Path tempFolder,
@@ -122,9 +121,9 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[]  responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, release.mime);
+      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, release.mime);
 
-      log.debug("Response headers: "+ Arrays.toString(responseHeaders));
+      log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
       final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
 
@@ -134,16 +133,16 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       if (etag.isPresent()) {
         final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
-          if (matcher.find()) {
-            final String extractedEtag = matcher.group(1);
-            if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
-              log.info("Calculated MD5 is equal to the ETag in response");
-            } else {
-              log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
-            }
+        if (matcher.find()) {
+          final String extractedEtag = matcher.group(1);
+          if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
+            log.info("Calculated MD5 is equal to the ETag in response");
           } else {
-            log.error("Can't extract MD5 from ETag: "+etag.get().getValue());
+            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
           }
+        } else {
+          log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
+        }
       } else {
         log.warn("ETag is not presented in the response or its value can't be parsed");
       }
