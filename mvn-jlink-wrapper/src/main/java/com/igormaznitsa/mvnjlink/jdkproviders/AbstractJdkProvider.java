@@ -148,7 +148,7 @@ public abstract class AbstractJdkProvider {
   @Nonnull
   protected String doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
     final Log log = this.mojo.getLog();
-    log.debug(format("Getting file %s into %s", url, targetFile.toString()));
+    log.debug(format("Loading %s into file %s", url, targetFile.toString()));
     try {
       doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
         boolean showProgress = false;
@@ -159,10 +159,16 @@ public abstract class AbstractJdkProvider {
             final long contentSize = httpEntity.getContentLength();
             final InputStream inStream = httpEntity.getContent();
 
+            log.debug("Reported content size: " + contentSize + " bytes");
+
             final int PROGRESSBAR_WIDTH = 10;
             final String LOADING_TITLE = format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
 
             showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
+
+            if (!showProgress) {
+              log.info(String.format("Loading file %s, size %d bytes", targetFile.getFileName().toString(), contentSize));
+            }
 
             long downloadByteCounter = 0L;
 

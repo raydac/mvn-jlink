@@ -112,9 +112,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      log.info(String.format("Loading archive, %d kB : %s", release.size / 1024L, release.link));
       final String archiveHash = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, release.mime);
-
       log.info("Archive has been loaded successfuly, hash is " + archiveHash);
 
     } else {

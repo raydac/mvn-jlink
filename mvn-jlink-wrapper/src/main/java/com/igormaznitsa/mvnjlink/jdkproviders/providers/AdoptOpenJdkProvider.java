@@ -200,8 +200,6 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      log.info(String.format("Loading archive, %d kB : %s", binary.size / 1024L, binary.link));
-
       final String archiveSha256 = doHttpGetIntoFile(client, binary.link, archiveFile);
 
       log.info("Archive has been loaded successfuly, hash is " + archiveSha256);
