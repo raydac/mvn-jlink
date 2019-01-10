@@ -95,10 +95,10 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected File lockCache(@Nonnull final Path cacheFolder) throws IOException {
+  protected File lockCache(@Nonnull final Path cacheFolder, @Nonnull final String jdkId) throws IOException {
     final Log log = this.mojo.getLog();
 
-    final File lockFile = cacheFolder.resolve(".#cacheLocker#.").toFile();
+    final File lockFile = cacheFolder.resolve(".#" + jdkId).toFile();
     lockFile.deleteOnExit();
 
     if (!lockFile.createNewFile()) {
@@ -254,7 +254,7 @@ public abstract class AbstractJdkProvider {
 
     File lockingFile = null;
     try {
-      lockingFile = this.lockCache(cacheFolder);
+      lockingFile = this.lockCache(cacheFolder, targetFolderName);
       if (isDirectory(resultFolder)) {
         log.debug("Already cached JDK folder detected, skip loading: " + resultFolder);
       } else {
