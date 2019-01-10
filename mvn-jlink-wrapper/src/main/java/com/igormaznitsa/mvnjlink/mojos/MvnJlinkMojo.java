@@ -59,6 +59,9 @@ public class MvnJlinkMojo extends AbstractJdkToolMojo {
   @Parameter(name = "options")
   private List<String> options = new ArrayList<>();
 
+  @Parameter(name = "modulePath")
+  private String modulePath;
+
   @Parameter(name = "addModules")
   private List<String> addModules = new ArrayList<>();
 
@@ -116,7 +119,13 @@ public class MvnJlinkMojo extends AbstractJdkToolMojo {
     final List<String> commandLineOptions = new ArrayList<>(this.getOptions());
 
     commandLineOptions.add("--module-path");
-    commandLineOptions.add(providerJdk.resolve("jmods").toString());
+    if (this.modulePath != null) {
+      log.debug("Detected non-empty module path in configuration: " + this.modulePath);
+      commandLineOptions.add(this.modulePath);
+    } else {
+      log.info("Provider JDK will be used as module path source: " + providerJdk);
+      commandLineOptions.add(providerJdk.resolve("jmods").toString());
+    }
 
     final int indexOptions = commandLineOptions.indexOf("--add-modules");
     if (indexOptions < 0) {
