@@ -249,7 +249,7 @@ public abstract class AbstractJdkProvider {
   protected Path loadJdkIntoCacheIfNotExist(@Nonnull final Path cacheFolder, @Nonnull final String targetFolderName, @Nonnull IoLoader loader) throws IOException {
     final Log log = this.mojo.getLog();
 
-    final Path tempFolder = cacheFolder.resolve(".#" + targetFolderName);
+    final Path tempFolder = cacheFolder.resolve(".TMP" + targetFolderName);
     final Path resultFolder = cacheFolder.resolve(targetFolderName);
 
     File lockingFile = null;

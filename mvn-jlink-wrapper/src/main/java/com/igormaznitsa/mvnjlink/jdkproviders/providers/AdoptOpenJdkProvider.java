@@ -106,7 +106,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       if (isOfflineMode()) {
         throw new FailureException("Unpacked JDK (" + cachedJdkFolderName + ") is not found, stopping process because offline mode is active");
       } else {
-        log.info("Can't find cached sdk: " + cachedJdkFolderName);
+        log.info("Can't find cached JDK: " + cachedJdkFolderName);
       }
 
       final String adoptApiUri;
