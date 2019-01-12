@@ -8,6 +8,9 @@
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
+    <name>Mvn Jlink</name>
+    <description>Maven plugin to download OpenJDK distributives and use JDK tools to make JDK images</description>
+
     <inceptionYear>2019</inceptionYear>
 
     <url>https://github.com/raydac/mvn-jlink</url>
