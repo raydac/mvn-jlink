@@ -6,11 +6,52 @@
     <parent>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>mvn-jlink</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>mvn-jlink-tests</artifactId>
     <packaging>pom</packaging>
+
+    <inceptionYear>2019</inceptionYear>
+
+    <url>https://github.com/raydac/mvn-jlink</url>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/raydac/mvn-jlink/issues</url>
+    </issueManagement>
+
+    <developers>
+        <developer>
+            <id>raydac</id>
+            <name>Igor Maznitsa</name>
+            <email>rrg4400@gmail.com</email>
+            <url>http://www.igormaznitsa.com</url>
+            <timezone>+2</timezone>
+            <roles>
+                <role>Author</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/raydac/mvn-jlink</url>
+        <connection>scm:git:git://github.com/raydac/mvn-jlink.git</connection>
+        <developerConnection>scm:git:git@github.com:raydac/mvn-jlink.git</developerConnection>
+    </scm>
+
+    <organization>
+        <name>Igor Maznitsa</name>
+        <url>http://www.igormaznitsa.com</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <modules>
         <module>mvn-jlink-test-cache</module>

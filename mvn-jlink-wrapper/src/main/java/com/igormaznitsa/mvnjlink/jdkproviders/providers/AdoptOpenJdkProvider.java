@@ -59,6 +59,9 @@ import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
+/**
+ * Provider of prebuilt OpenJDK archives from <href src="https://adoptopenjdk.net/">AdoptOpenJDK</href>
+ */
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
 

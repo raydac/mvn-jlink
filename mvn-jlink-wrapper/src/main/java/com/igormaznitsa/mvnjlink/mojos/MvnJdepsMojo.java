@@ -39,7 +39,7 @@ import static java.nio.charset.Charset.defaultCharset;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 
 /**
- * Execute JDEPS in JDK, output will be saved.
+ * Execute JDEPS tool from provided JDK, output will be saved.
  */
 @Mojo(name = "jdeps", defaultPhase = LifecyclePhase.PACKAGE, threadSafe = true)
 public class MvnJdepsMojo extends AbstractJdkToolMojo {

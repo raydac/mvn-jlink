@@ -28,6 +28,14 @@ import java.util.Map;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 
+/**
+ * Provider for locally presented JDK.
+ * Priority:
+ * <ul>
+ *   <li>JDK described by <b>toolJdk</b></li>
+ *   <li>JDK provided by toolchain</li>
+ * </ul>
+ */
 public class LocalJdkProvider extends AbstractJdkProvider {
   public LocalJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);

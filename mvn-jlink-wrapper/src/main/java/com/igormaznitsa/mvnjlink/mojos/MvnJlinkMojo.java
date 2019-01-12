@@ -48,7 +48,7 @@ import static java.util.stream.Collectors.joining;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 /**
- * Execute JLINK.
+ * Execute JLINK tool from provided JDK.
  */
 @Mojo(name = "jlink", defaultPhase = LifecyclePhase.PACKAGE, threadSafe = true)
 public class MvnJlinkMojo extends AbstractJdkToolMojo {

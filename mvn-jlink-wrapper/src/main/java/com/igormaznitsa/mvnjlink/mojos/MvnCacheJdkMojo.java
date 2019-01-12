@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
 /**
- * Allows to doLoad JDK by its provider into cache and save path of cached JDK into project property.
+ * Allows to download JDK from provider into cache and save path of cached JDK folder into project property.
  */
 @Mojo(name = "cache-jdk", defaultPhase = LifecyclePhase.INITIALIZE, threadSafe = true)
 public class MvnCacheJdkMojo extends AbstractJdkToolMojo {

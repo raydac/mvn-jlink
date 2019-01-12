@@ -44,7 +44,7 @@ import static java.nio.file.Files.isExecutable;
 import static java.nio.file.Files.isRegularFile;
 
 /**
- * Execute tool from JDK.
+ * Execute tool from provided JDK.
  */
 @Mojo(name = "jdk-tool", defaultPhase = LifecyclePhase.NONE, threadSafe = true)
 public class MvnJdkToolMojo extends AbstractJdkToolMojo {

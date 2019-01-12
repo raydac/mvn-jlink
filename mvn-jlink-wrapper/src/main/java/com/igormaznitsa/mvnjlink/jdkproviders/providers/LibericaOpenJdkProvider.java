@@ -51,6 +51,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
+/**
+ * Provider of prebuilt OpenJDK archives from <href src="https://www.bell-sw.com/java.html">LibericaOpenJDK</href>
+ */
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   private static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
