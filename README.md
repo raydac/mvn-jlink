@@ -8,7 +8,7 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
-__1.0.0 (SNAPSHOT)__
+__1.0.0 (12-jan-2019)__
  - initial version
 
 # Introduction
