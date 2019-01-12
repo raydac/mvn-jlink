@@ -12,32 +12,32 @@
     <fileSets>
         <fileSet>
             <directory>${project.basedir}</directory>
-            <outputDirectory>/project</outputDirectory>
+            <outputDirectory>${file.separator}project</outputDirectory>
             <excludes>
-                <exclude>target/</exclude>
-                <exclude>texts/</exclude>
+                <exclude>target${file.separator}</exclude>
+                <exclude>texts${file.separator}</exclude>
                 <exclude>nbactions.xml</exclude>
                 <exclude>catalog.xml</exclude>
-                <exclude>**/.*</exclude>
+                <exclude>**${file.separator}.*</exclude>
             </excludes>
         </fileSet>
         <fileSet>
-            <outputDirectory>/lib</outputDirectory>
-            <directory>${project.basedir}/target</directory>
+            <outputDirectory>${file.separator}lib</outputDirectory>
+            <directory>${project.basedir}${file.separator}target</directory>
             <includes>
                 <include>${project.build.finalName}.jar</include>
             </includes>
         </fileSet>
         <fileSet>
-            <outputDirectory>/lib</outputDirectory>
+            <outputDirectory>${file.separator}lib</outputDirectory>
             <directory>${project.basedir}</directory>
             <includes>
                 <include>pom.xml</include>
             </includes>
         </fileSet>
         <fileSet>
-            <outputDirectory>/</outputDirectory>
-            <directory>${basedir}/texts</directory>
+            <outputDirectory>${file.separator}</outputDirectory>
+            <directory>${basedir}${file.separator}texts</directory>
             <includes>
                 <include>*.*</include>
             </includes>
