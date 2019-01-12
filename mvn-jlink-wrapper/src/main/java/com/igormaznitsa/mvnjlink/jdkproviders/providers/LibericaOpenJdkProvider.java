@@ -52,7 +52,7 @@ import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 /**
- * Provider of prebuilt OpenJDK archives from <href src="https://www.bell-sw.com/java.html">LibericaOpenJDK</href>
+ * Provider of prebuilt OpenJDK archives from <a href="https://www.bell-sw.com/java.html">LibericaOpenJDK</a>
  */
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
