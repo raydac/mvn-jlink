@@ -142,4 +142,5 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 ```
 
 # Mind Map of the plug-in
+Created with [SciaReto](http://sciareto.org)   
 ![mindmap](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/mindmap.png)
