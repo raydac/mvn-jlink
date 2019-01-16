@@ -31,8 +31,10 @@ import org.zeroturnaround.exec.ProcessResult;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -136,10 +138,23 @@ public class MvnJlinkMojo extends AbstractJdkToolMojo {
     commandLineOptions.add("--module-path");
     if (this.modulePath != null) {
       log.debug("Detected non-empty module path in configuration: " + this.modulePath);
-      commandLineOptions.add(this.modulePath);
+
+      final File modulePathFolder = new File(this.modulePath);
+
+      if (!modulePathFolder.isDirectory()) {
+        throw new MojoExecutionException("Can't find folder provided in 'modulePath': " + modulePathFolder.getAbsolutePath());
+      }
+
+      commandLineOptions.add(modulePathFolder.getAbsolutePath());
     } else {
       log.info("Provider JDK will be used as module path source: " + providerJdk);
-      commandLineOptions.add(providerJdk.resolve("jmods").toString());
+
+      final Path pathToMods = providerJdk.resolve("jmods");
+      if (!Files.isDirectory(pathToMods)) {
+        throw new MojoExecutionException("Can't find jmods folder: " + pathToMods.toString());
+      }
+
+      commandLineOptions.add(pathToMods.toString());
     }
 
     final int indexOptions = commandLineOptions.indexOf("--add-modules");
