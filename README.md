@@ -8,6 +8,11 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.1 (SNAPSHOT)__
+ - improved Liberica file name parser to support chars in JDK version
+ - improved bin folder search
+ - added existing of jmods folder
+
 __1.0.0 (12-jan-2019)__
  - initial version
 

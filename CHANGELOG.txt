@@ -1,2 +1,7 @@
+1.0.1 (SNAPSHOT)
+ - improved Liberica file name parser to support chars in JDK version
+ - improved bin folder search
+ - added existing of jmods folder
+
 1.0.0 (12-jan-2019)
  - initial version
