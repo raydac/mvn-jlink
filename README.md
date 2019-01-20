@@ -10,9 +10,9 @@
 # Changelog
 __1.0.1 (20-jan-2019)__
  - added parameter `connectionRequestTimeout` for requests
- - improved Liberica file name parser to support chars in JDK version
+ - improved Liberica file name parser to support abc chars in JDK version
  - improved bin folder search
- - added existing of jmods folder
+ - added check of jmods folder existing
 
 __1.0.0 (12-jan-2019)__
  - initial version
