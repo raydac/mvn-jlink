@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <name>Maven Jlink plugin</name>
-    <description>Maven plugin to download OpenJDK distributives and use JDK tools to make JDK images</description>
+    <description>Maven plugin to load OpenJDK distributives and use its tools to make jdk images</description>
 
     <inceptionYear>2019</inceptionYear>
 
