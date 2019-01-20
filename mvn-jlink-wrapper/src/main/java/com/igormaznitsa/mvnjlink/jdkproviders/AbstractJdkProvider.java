@@ -152,7 +152,7 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected String doHttpGetText(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull @MustNotContainNull String... acceptedContent) throws IOException {
+  protected String doHttpGetText(@Nonnull final HttpClient client, @Nonnull final String url, final int connectionRequestTimeout, @Nonnull @MustNotContainNull String... acceptedContent) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
     doGetRequest(client, url, this.mojo.getProxy(), x -> {
       try {
@@ -160,7 +160,7 @@ public abstract class AbstractJdkProvider {
       } catch (IOException ex) {
         throw new IORuntimeWrapperException(ex);
       }
-    }, acceptedContent);
+    },  connectionRequestTimeout, acceptedContent);
     return result.get();
   }
 
@@ -177,9 +177,9 @@ public abstract class AbstractJdkProvider {
    */
   @MustNotContainNull
   @Nonnull
-  protected Header[] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
+  protected Header[] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, final int connectionRequestTimeout, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
     final Log log = this.mojo.getLog();
-    log.debug(format("Loading %s into file %s", url, targetFile.toString()));
+    log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(), connectionRequestTimeout));
 
     Header[] responseHeaders = null;
 
@@ -238,7 +238,7 @@ public abstract class AbstractJdkProvider {
             System.out.println();
           }
         }
-      }, acceptedContent);
+      }, connectionRequestTimeout, acceptedContent);
     } catch (IORuntimeWrapperException ex) {
       throw ex.getWrapped();
     }

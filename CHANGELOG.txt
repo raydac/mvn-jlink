@@ -1,4 +1,5 @@
 1.0.1 (SNAPSHOT)
+ - added parameter `connectionRequestTimeout` for requests
  - improved Liberica file name parser to support chars in JDK version
  - improved bin folder search
  - added existing of jmods folder

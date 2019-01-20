@@ -87,6 +87,13 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   private boolean disableSSLcheck;
 
   /**
+   * Define connection request timeout for requests in milliseconds.
+   * @since 1.0.1
+   */
+  @Parameter(name = "connectionRequestTimeout", defaultValue = "30000")
+  private int connectionRequestTimeout = 30000;
+
+  /**
    * Proxy settings for network operations.
    */
   @Parameter(name = "proxy")
@@ -112,6 +119,10 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   @Component
   private ToolchainManager toolchainManager;
+
+  public int getConnectionRequestTimeout() {
+    return this.connectionRequestTimeout;
+  }
 
   public boolean isUseOnlyCache() {
     return this.useOnlyCache;

@@ -77,9 +77,11 @@ public final class HttpUtils {
       @Nonnull final String urlLink,
       @Nullable final ProxySettings proxySettings,
       @Nonnull final Consumer<HttpEntity> consumer,
+      final int connectionRequestTimeout,
       @Nonnull @MustNotContainNull final String... acceptedContent
   ) throws IOException {
     final RequestConfig.Builder config = RequestConfig.custom();
+    config.setConnectionRequestTimeout(connectionRequestTimeout);
 
     if (proxySettings != null) {
       final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);

@@ -96,7 +96,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       }
 
       final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
-      final ReleaseList releaseList = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST, "application/vnd.github.v3+json"));
+      final ReleaseList releaseList = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST, this.mojo.getConnectionRequestTimeout(),"application/vnd.github.v3+json"));
 
       final List<ReleaseList.Release> releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
 
@@ -140,7 +140,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, release.mime);
+      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, this.mojo.getConnectionRequestTimeout(), release.mime);
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
