@@ -244,7 +244,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     private static class Release {
 
-      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
