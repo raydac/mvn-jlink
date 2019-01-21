@@ -181,7 +181,7 @@ public abstract class AbstractJdkProvider {
     final Log log = this.mojo.getLog();
     log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(), connectionRequestTimeout));
 
-    Header[] responseHeaders = null;
+    Header[] responseHeaders;
 
     try {
       responseHeaders = doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {

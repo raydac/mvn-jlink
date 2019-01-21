@@ -85,6 +85,7 @@ public class MvnJlinkMojo extends AbstractJdkToolMojo {
   @Parameter(name = "output", required = true)
   private String output;
 
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   @Nonnull
   @MustNotContainNull
   private static List<String> extractModuleNamesFromJdepsReport(@Nonnull final Optional<Path> jdepsReportPath) throws MojoExecutionException {

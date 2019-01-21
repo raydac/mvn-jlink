@@ -53,7 +53,6 @@ public final class StringUtils {
     builder.append("[");
 
     final int progress = max(0, min(progressBarWidth, (int) Math.round(progressBarWidth * ((double) value / (double) maxValue))));
-    int nextValue = progress;
 
     for (int i = 0; i < progress; i++) {
       builder.append('▒');
@@ -63,12 +62,12 @@ public final class StringUtils {
     }
     builder.append("]\u001B[?25h");
 
-    if (nextValue != lastValue) {
+    if (progress != lastValue) {
       System.out.print(builder.toString());
       System.out.flush();
     }
 
-    return nextValue;
+    return progress;
   }
 
   @Nonnull
