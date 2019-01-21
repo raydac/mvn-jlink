@@ -138,7 +138,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           } catch (IOException ex) {
             throw new IORuntimeWrapperException(ex);
           }
-        }, this.mojo.getConnectionRequestTimeout(), "application/json");
+        }, this.mojo.getConnectionTimeout(), "application/json");
       } catch (IORuntimeWrapperException ex) {
         throw ex.getWrapped();
       }
@@ -192,7 +192,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
-      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, this.mojo.getConnectionRequestTimeout(), "text/plain"));
+      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, this.mojo.getConnectionTimeout(), "text/plain"));
       log.info("Expected archive SHA256 digest: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
@@ -223,7 +223,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getSha256Digest();
-      doHttpGetIntoFile(client, binary.link, archiveFile, digest, this.mojo.getConnectionRequestTimeout());
+      doHttpGetIntoFile(client, binary.link, archiveFile, digest, this.mojo.getConnectionTimeout());
       final String calculatedStreamDigest = Hex.encodeHexString(digest.digest());
 
       log.info("Archive has been loaded successfuly, calculated SHA256 digest is " + calculatedStreamDigest);
