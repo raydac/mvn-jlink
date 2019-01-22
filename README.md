@@ -8,6 +8,11 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.2 (SNAPSHOT)__
+ - added [SapMachine OpenJdk provider](https://github.com/SAP/SapMachine)
+ - fixed work with release pages in GitHub API
+ - reworked connection timeout and `connectionRequestTimeout` renamed to `connectionTimeout`
+
 __1.0.1 (20-jan-2019)__
  - added parameter `connectionRequestTimeout` for requests
  - improved Liberica file name parser to support abc chars in JDK version
