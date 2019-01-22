@@ -78,12 +78,12 @@ public final class SystemUtils {
     return result;
   }
 
-  public static void closeCloseable(@Nullable final Closeable closeable, @Nonnull final Log logger) {
+  public static void closeCloseable(@Nullable final Closeable closeable, @Nullable final Log logger) {
     if (closeable != null) {
       try {
         closeable.close();
       } catch (Exception ex) {
-        logger.debug("Can't close closeable object: " + closeable, ex);
+        if (logger!=null) logger.debug("Can't close closeable object: " + closeable, ex);
       }
     }
   }

@@ -19,6 +19,7 @@
         <module>mvn-jlink-test-tool</module>
         <module>mvn-jlink-test-adopt</module>
         <module>mvn-jlink-test-liberica</module>
+        <module>mvn-jlink-test-sapmachine</module>
     </modules>
 
     <build>

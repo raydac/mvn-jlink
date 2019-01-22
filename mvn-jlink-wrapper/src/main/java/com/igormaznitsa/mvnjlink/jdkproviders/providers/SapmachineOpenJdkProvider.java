@@ -53,14 +53,16 @@ import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 /**
- * Provider of prebuilt OpenJDK archives from <a href="https://www.bell-sw.com/java.html">LibericaOpenJDK</a>
+ * Provider of prebuilt <a href="https://github.com/SAP/SapMachine">SAPMACHINE OpenJDK </a> distributives.
+ *
+ * @since 1.0.2
  */
-public class LibericaOpenJdkProvider extends AbstractJdkProvider {
+public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
-  private static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
+  private static final String RELEASES_LIST = "https://api.github.com/repos/SAP/SapMachine/releases";
   private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
-  public LibericaOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
+  public SapmachineOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
 
@@ -71,7 +73,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     assertParameters(config, "type", "version", "arch");
 
-    final String defaultOs = findCurrentOs("macos");
+    final String defaultOs = findCurrentOs("osx");
 
     log.debug("Default OS recognized as: " + defaultOs);
 
@@ -82,7 +84,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
-    final Path cachedJdkPath = cacheFolder.resolve(String.format("LIBERICA_%s%s_%s_%s", jdkType, jdkVersion, jdkOs, jdkArch));
+    final Path cachedJdkPath = cacheFolder.resolve(String.format("SAPMACHINE_%s%s_%s_%s", jdkType, jdkVersion, jdkOs, jdkArch));
 
     final Path result;
 
@@ -98,7 +100,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
 
-      ReleaseList releaseList = new ReleaseList();
+      final ReleaseList releaseList = new ReleaseList();
 
       int page = 1;
       while (!Thread.currentThread().isInterrupted()) {
@@ -117,6 +119,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         log.warn("Found releases\n" + releaseList.makeReport());
         throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
+
         log.debug("Found releases: " + releases);
 
         final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
@@ -187,12 +190,13 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
-    final String archiveRoorName = ArchUtils.findShortestDirectory(pathToArchiveFile);
-    log.debug("Root archive folder: " + archiveRoorName);
+    final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
+    log.debug("Root folder in archive: " + archiveRootName);
+
     log.info("Unpacking archive...");
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder, archiveRoorName);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder, archiveRootName);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
+      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);
     }
     log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
 
@@ -206,13 +210,6 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   private static class ReleaseList {
     private final List<Release> releases = new ArrayList<>();
-
-    private ReleaseList() {
-    }
-
-    public void add(@Nonnull final ReleaseList list) {
-      this.releases.addAll(list.releases);
-    }
 
     private ReleaseList(@Nonnull final Log log, @Nonnull final String json) {
       final JSONArray array = new JSONArray(json);
@@ -237,13 +234,24 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
             if (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz")) {
               final String link = asset.getString("browser_download_url");
-              this.releases.add(new Release(fileName, link, mime, size));
+              try {
+                this.releases.add(new Release(fileName, link, mime, size));
+              } catch (IllegalArgumentException ex) {
+                log.debug("Ignoring because non-standard name: " + fileName);
+              }
             } else {
               log.debug("Ignoring because non-unpackable file: " + asset);
             }
           }
         }
       }
+    }
+
+    private ReleaseList() {
+    }
+
+    public void add(@Nonnull final ReleaseList list) {
+      this.releases.addAll(list.releases);
     }
 
     public boolean isEmpty() {
@@ -268,7 +276,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     private static class Release {
 
-      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      private static final Pattern SAPMACHINE_FILENAME_PATTERN = Pattern.compile("^sapmachine-(jdk|jre)-([a-z\\-0-9.+]+)_([a-z]+)-([a-z0-9\\-]+)_bin.(.+)$", Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
@@ -290,7 +298,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         this.link = link;
         this.mime = mime;
         this.size = size;
-        final Matcher matcher = BELLSOFT_FILENAME_PATTERN.matcher(fileName);
+        final Matcher matcher = SAPMACHINE_FILENAME_PATTERN.matcher(fileName);
         if (matcher.find()) {
           this.type = matcher.group(1);
           this.version = matcher.group(2);

@@ -57,6 +57,92 @@ public final class ArchUtils {
   }
 
   /**
+   * Find shortes directory path in archive
+   *
+   * @param archiveFile
+   * @return
+   * @throws IOException
+   */
+  @Nullable
+  public static final String findShortestDirectory(@Nonnull final Path archiveFile) throws IOException {
+    final String lcArchiveFileName = assertNotNull(archiveFile.getFileName()).toString().toLowerCase(ENGLISH);
+
+    final ArchEntryGetter entryGetter;
+
+    final ZipFile zipFile;
+    final ArchiveInputStream archiveInputStream;
+
+    if (lcArchiveFileName.endsWith(".zip")) {
+      zipFile = new ZipFile(archiveFile.toFile());
+      archiveInputStream = null;
+
+      entryGetter = new ArchEntryGetter() {
+        private final Enumeration<ZipArchiveEntry> iterator = zipFile.getEntries();
+
+        @Nullable
+        @Override
+        public ArchiveEntry getNextEntry() throws IOException {
+          ArchiveEntry result = null;
+          if (this.iterator.hasMoreElements()) {
+            result = this.iterator.nextElement();
+          }
+          return result;
+        }
+      };
+    } else {
+      zipFile = null;
+      try {
+        if (lcArchiveFileName.endsWith(".tar.gz")) {
+          archiveInputStream = new TarArchiveInputStream(new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
+
+          entryGetter = new ArchEntryGetter() {
+            @Nullable
+            @Override
+            public ArchiveEntry getNextEntry() throws IOException {
+              final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) archiveInputStream;
+              return tarInputStream.getNextTarEntry();
+            }
+          };
+
+        } else {
+          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(new BufferedInputStream(newInputStream(archiveFile)));
+
+          entryGetter = new ArchEntryGetter() {
+            @Nullable
+            @Override
+            public ArchiveEntry getNextEntry() throws IOException {
+              return archiveInputStream.getNextEntry();
+            }
+          };
+        }
+
+      } catch (ArchiveException ex) {
+        throw new IOException("Can't recognize or read archive file : " + archiveFile, ex);
+      } catch (CantReadArchiveEntryException ex) {
+        throw new IOException("Can't read entry from archive file : " + archiveFile, ex);
+      }
+    }
+
+    String result = null;
+    while (!Thread.currentThread().isInterrupted()) {
+      final ArchiveEntry entry = entryGetter.getNextEntry();
+      if (entry == null) {
+        break;
+      }
+      final String path = entry.getName();
+      final int separator = path.indexOf('/');
+      if (separator >= 0) {
+        result = path.substring(0, separator);
+      }
+    }
+
+    closeCloseable(archiveInputStream, null);
+    closeCloseable(zipFile, null);
+
+    return result;
+  }
+
+  /**
    * Unpack whole archive or some its folders into a folder.
    *
    * @param logger            maven logger for logging, must not be null
