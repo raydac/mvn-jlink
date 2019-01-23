@@ -129,10 +129,18 @@ public final class ArchUtils {
       if (entry == null) {
         break;
       }
-      final String path = entry.getName();
+      String path = entry.getName();
+      boolean dotRootPrefix = false;
+      if (path.startsWith("./")) {
+        path = path.substring(2);
+        dotRootPrefix = true;
+      }
       final int separator = path.indexOf('/');
       if (separator >= 0) {
         result = path.substring(0, separator);
+        if (dotRootPrefix) {
+          result = "./" + result;
+        }
       }
     }
 
