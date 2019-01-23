@@ -105,7 +105,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       int page = 1;
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
-        final ReleaseList releases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList releases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         if (releases.isEmpty()) {
           break;
         }
