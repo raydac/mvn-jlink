@@ -22,6 +22,7 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import com.igormaznitsa.mvnjlink.utils.ArchUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
 import org.apache.commons.codec.binary.Hex;
@@ -45,7 +46,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +64,7 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
  */
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
+  private static final String BASEURL_OPENJDK_RELEASES = "https://api.adoptopenjdk.net/v2/info/releases/";
 
   public AdoptOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
@@ -119,7 +120,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           final String jdkVersion = matcher.group(2);
           final int dotIndex = jdkVersion.indexOf('.');
           log.debug("Extracted JDK version " + jdkVersion + " from " + jdkRelease);
-          adoptApiUri = "https://api.adoptopenjdk.net/v2/info/releases/openjdk" + (dotIndex < 0 ? jdkVersion : jdkVersion.substring(0, dotIndex));
+          adoptApiUri = BASEURL_OPENJDK_RELEASES + "openjdk" + (dotIndex < 0 ? jdkVersion : jdkVersion.substring(0, dotIndex));
         } else {
           throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + jdkRelease);
         }
@@ -152,27 +153,17 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       }
 
       final ReleaseList releaseList = new ReleaseList(jsonReleaseArray);
-      final ReleaseList.Release foundRelease = releaseList.findRelease(jdkRelease);
-
-      if (foundRelease == null) {
-        log.error(String.format("Can't find release for pattern '%s'", jdkRelease));
-        log.error("List of JDKs\n---------------------\n" + releaseList.makeListOfAllReleases());
-        throw new IOException(String.format("Can't find release for pattern '%s'", jdkRelease));
-      } else {
-        log.debug(String.format("Found release '%s' starts with '%s'", jdkRelease, foundRelease));
-      }
-
-      final ReleaseList.Release.Binary foundReleaseBinary = releaseList.findBinary(foundRelease, jdkOs, jdkArch, jdkType, jdkImpl);
+      final ReleaseList.Release.Binary foundReleaseBinary = releaseList.findBinary(jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl);
 
       if (foundReleaseBinary == null) {
-        log.error(String.format("Can't find binary in release '%s' : %s [os='%s',arch='%s',type='%s',impl='%s']", foundRelease, jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
+        log.error(String.format("Can't find appropriate JDK binary, check list of allowed releases : %s [os='%s',arch='%s',type='%s',impl='%s']", jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
         log.error(releaseList.makeListOfAllReleases());
-        throw new IOException(String.format("Can't find binary in release '%s' : %s [os='%s',arch='%s',type='%s',impl='%s']", foundRelease, jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
+        throw new IOException(String.format("Can't find appropriate JDK binary: %s [os='%s',arch='%s',type='%s',impl='%s']", jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
       } else {
         log.debug("Found release binary: " + foundReleaseBinary);
 
         result = loadJdkIntoCacheIfNotExist(cacheFolder, cachedJdkFolderName, tempFolder ->
-            downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tempFolder, foundRelease.releaseName, keepArchiveFile)
+            downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tempFolder, keepArchiveFile)
         );
       }
     }
@@ -184,7 +175,6 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final ReleaseList.Release.Binary binary,
       @Nonnull final Path workFolder,
       @Nonnull final Path destUnpackFolder,
-      @Nonnull final String nameOfArchiveRoot,
       final boolean keepArchiveFile
   ) throws IOException {
 
@@ -246,10 +236,18 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
+    final String rootArchiveFolder = ArchUtils.findShortestDirectory(archiveFile);
+
+    if (rootArchiveFolder == null) {
+      log.error("Can't find root folder in downloaded archive: " + archiveFile);
+    } else {
+      log.info("Detected archive root folder: " + rootArchiveFolder);
+    }
+
     log.info("Unpacking archive...");
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, archiveFile, destUnpackFolder, nameOfArchiveRoot);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, archiveFile, destUnpackFolder, rootArchiveFolder);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + nameOfArchiveRoot);
+      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + rootArchiveFolder);
     }
     log.debug(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.toString()));
     log.info(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.getFileName()));
@@ -278,28 +276,21 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
     }
 
     @Nullable
-    private Release findRelease(@Nonnull final String name) {
-      final WildCardMatcher wildCardMatcher = new WildCardMatcher(name, true);
-      final Optional<Release> release = this.releases.stream().filter(x -> wildCardMatcher.match(x.releaseName)).findFirst();
-      return release.orElse(null);
-    }
-
-    @Nullable
     private Release.Binary findBinary(
-        @Nonnull final Release release,
-        @Nonnull final String os,
-        @Nonnull final String arch,
-        @Nonnull final String type,
-        @Nonnull final String impl) {
+        @Nonnull final String name,
+        @Nullable final String jdkOs,
+        @Nullable final String jdkArch,
+        @Nullable final String jdkType,
+        @Nullable final String jdkImpl
+    ) {
+      final WildCardMatcher wildCardMatcher = new WildCardMatcher(name, true);
 
-      final Optional<Release.Binary> binary = release.binaries.stream()
-          .filter(x -> x.os.equalsIgnoreCase(os))
-          .filter(x -> x.arch.equalsIgnoreCase(arch))
-          .filter(x -> x.type.equalsIgnoreCase(type))
-          .filter(x -> x.impl.equalsIgnoreCase(impl))
-          .findFirst();
-
-      return binary.orElse(null);
+      return this.releases.stream().filter(x -> wildCardMatcher.match(x.releaseName)).flatMap(x -> x.binaries.stream())
+          .filter(x -> jdkOs == null || jdkOs.equalsIgnoreCase(x.os))
+          .filter(x -> jdkArch == null || jdkArch.equalsIgnoreCase(x.arch))
+          .filter(x -> jdkType == null || jdkType.equalsIgnoreCase(x.type))
+          .filter(x -> jdkImpl == null || jdkImpl.equalsIgnoreCase(x.impl))
+          .findFirst().orElse(null);
     }
 
     private static final class Release implements Comparable<Release> {
@@ -337,6 +328,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       }
 
       @Nonnull
+      @Override
       public String toString() {
         return this.releaseName;
       }
