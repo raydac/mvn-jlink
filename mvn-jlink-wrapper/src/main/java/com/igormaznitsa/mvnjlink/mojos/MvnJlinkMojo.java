@@ -216,7 +216,7 @@ public class MvnJlinkMojo extends AbstractJdkToolMojo {
       final String textErr = new String(consoleErr.toByteArray(), Charset.defaultCharset());
 
       if (executor.getExitValue() == 1 && textOut.contains("Error: java.lang.IllegalArgumentException")) {
-        log.error("It looks like that working JDK is incompatible with the source module JDK!");
+        log.error("It looks like that the current JDK is incompatible with the provided JDK!");
       }
 
       if (textErr.isEmpty()) {
