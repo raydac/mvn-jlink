@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -98,20 +99,23 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
 
-      ReleaseList releaseList = new ReleaseList();
+      final ReleaseList releaseList = new ReleaseList();
+      List<ReleaseList.Release> releases = Collections.emptyList();
 
       int page = 1;
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
-        final ReleaseList releases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
-        if (releases.isEmpty()) {
+
+        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        releaseList.add(pageReleases);
+        releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
+
+        if (!releases.isEmpty() || pageReleases.isEmpty()) {
           break;
         }
-        releaseList.add(releases);
+
         page++;
       }
-
-      final List<ReleaseList.Release> releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
 
       if (releases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());

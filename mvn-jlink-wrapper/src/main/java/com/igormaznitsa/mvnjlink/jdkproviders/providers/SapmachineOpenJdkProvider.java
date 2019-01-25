@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -101,29 +102,33 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
-
+      List<ReleaseList.Release> foundReleases = Collections.emptyList();
       int page = 1;
+
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
-        final ReleaseList releases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
-        if (releases.isEmpty()) {
+
+        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        releaseList.add(pageReleases);
+
+        foundReleases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
+
+        if (!foundReleases.isEmpty() || pageReleases.isEmpty()) {
           break;
         }
-        releaseList.add(releases);
+
         page++;
       }
 
-      final List<ReleaseList.Release> releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
-
-      if (releases.isEmpty()) {
+      if (foundReleases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());
         throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
 
-        log.debug("Found releases: " + releases);
+        log.debug("Found releases: " + foundReleases);
 
-        final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
-        final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> tarRelease = foundReleases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> zipRelease = foundReleases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
         final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
         result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
