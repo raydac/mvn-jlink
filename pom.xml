@@ -5,7 +5,7 @@
 
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <packaging>pom</packaging>
 
     <name>Maven Jlink plugin</name>
@@ -67,7 +67,7 @@
         <profile>
             <id>it</id>
             <properties>
-                <mvnjlink.version>1.0.2-SNAPSHOT</mvnjlink.version>
+                <mvnjlink.version>1.0.2</mvnjlink.version>
             </properties>
             <modules>
                 <module>mvn-jlink-tests</module>

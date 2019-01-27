@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>mvn-jlink</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>mvn-jlink-wrapper</artifactId>

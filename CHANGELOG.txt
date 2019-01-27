@@ -2,6 +2,7 @@
  - added [SapMachine OpenJdk provider](https://github.com/SAP/SapMachine)
  - fixed work with release pages in GitHub API
  - reworked connection timeout and `connectionRequestTimeout` renamed to `connectionTimeout`
+ - bugfixing
 
 1.0.1 (20-jan-2019)
  - added parameter `connectionRequestTimeout` for requests
