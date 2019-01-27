@@ -23,6 +23,7 @@ import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
+import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -83,7 +85,12 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
-    final Path cachedJdkPath = cacheFolder.resolve(String.format("LIBERICA_%s%s_%s_%s", jdkType, jdkVersion, jdkOs, jdkArch));
+    final Path cachedJdkPath = cacheFolder.resolve(String.format("LIBERICA_%s%s_%s_%s",
+        StringUtils.escapeFileName(jdkType.toLowerCase(Locale.ENGLISH)),
+        StringUtils.escapeFileName(jdkVersion.toLowerCase(Locale.ENGLISH)),
+        StringUtils.escapeFileName(jdkOs.toLowerCase(Locale.ENGLISH)),
+        StringUtils.escapeFileName(jdkArch.toLowerCase(Locale.ENGLISH))
+    ));
 
     final Path result;
 

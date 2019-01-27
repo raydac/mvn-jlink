@@ -61,33 +61,6 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected static String escapeFileName(@Nonnull final String text) {
-    final StringBuilder result = new StringBuilder(text.length());
-    for (final char c : text.toCharArray()) {
-      switch (c) {
-        case '\\':
-        case '/':
-        case ':':
-        case '*':
-        case '?':
-        case '\"':
-        case '<':
-        case '>':
-        case '|':
-          result.append('.');
-          break;
-        default: {
-          if (!(Character.isWhitespace(c) || Character.isISOControl(c))) {
-            result.append(c);
-          }
-        }
-        break;
-      }
-    }
-    return result.toString();
-  }
-
-  @Nonnull
   protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
     try (final InputStream in = newInputStream(file)) {
       return sha256Hex(in);

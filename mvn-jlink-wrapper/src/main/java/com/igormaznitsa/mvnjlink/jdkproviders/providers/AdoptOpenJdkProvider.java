@@ -53,6 +53,7 @@ import java.util.regex.Pattern;
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
 import static java.nio.file.Files.*;
 import static java.util.Locale.ENGLISH;
 import static java.util.regex.Pattern.compile;

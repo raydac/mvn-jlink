@@ -37,6 +37,37 @@ public final class StringUtils {
   }
 
   @Nonnull
+  public static String escapeFileName(@Nonnull final String text) {
+    final StringBuilder result = new StringBuilder(text.length());
+    for (final char c : text.toCharArray()) {
+      switch (c) {
+        case '*':
+          result.append('#');
+          break;
+        case '?':
+          result.append('_');
+          break;
+        case '\\':
+        case '/':
+        case ':':
+        case '\"':
+        case '<':
+        case '>':
+        case '|':
+          result.append('.');
+          break;
+        default: {
+          if (!(Character.isWhitespace(c) || Character.isISOControl(c))) {
+            result.append(c);
+          }
+        }
+        break;
+      }
+    }
+    return result.toString();
+  }
+
+  @Nonnull
   public static String extractFileHash(@Nonnull final String text) throws IOException {
     final Matcher hashMatcher = PATTERN_FILE_HASH.matcher(text.trim());
     if (hashMatcher.find()) {
