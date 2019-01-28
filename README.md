@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 9.0+](https://img.shields.io/badge/java-9.0%2b-green.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.0.1|jar)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.0.2|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-red.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![Yandex.Money donation](https://img.shields.io/badge/donation-Я.деньги-yellow.svg)](http://yasobe.ru/na/iamoss)
@@ -31,8 +31,9 @@ Functionality of the plugin is very easy, it just provides way to execute tools 
 
 At present the plug-in supports listed OpenJDK providers:
 * LOCAL - locally provided JDK will be used for operations
-* [ADOPT](https://adoptopenjdk.net/) - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
-* [LIBERICA](https://www.bell-sw.com/java.html) - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
+* __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
+* __[LIBERICA](https://www.bell-sw.com/java.html)__ - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
+* __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - Prebuilt distributives of OpenJDK provided by SAP.
 
 # Goals and parameters
 The plug-in provides four goals:
