@@ -1,3 +1,6 @@
+__1.0.3 (SNAPSHOT)__
+ - minor refactoring of file name escaping
+
 1.0.2 (27-jan-2019)
  - added [SapMachine OpenJdk provider](https://github.com/SAP/SapMachine)
  - fixed work with release pages in GitHub API

@@ -8,6 +8,9 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.3 (SNAPSHOT)__
+ - minor refactoring of file name escaping
+ 
 __1.0.2 (27-jan-2019)__
  - added [SapMachine OpenJdk provider](https://github.com/SAP/SapMachine)
  - fixed work with release pages in GitHub API
