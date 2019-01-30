@@ -30,10 +30,12 @@ Since Java 9, JDK has modules (project Jigsaw) and it provides more or less smoo
 Functionality of the plugin is very easy, it just provides way to execute tools placed in JDK/bin folder like jdeps and jlink, but sometime it is needed to make image of a specific JDK, for such cases my plugin has internal mechanism which automatically downloads needed variant of OpenJDK from a provider, unpack it and the JDK can be used to build JDK image.   
 
 At present the plug-in supports listed OpenJDK providers:
-* LOCAL - locally provided JDK will be used for operations
+* __LOCAL__ - locally provided JDK will be used for operations
 * __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
 * __[LIBERICA](https://www.bell-sw.com/java.html)__ - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
 * __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - Prebuilt distributives of OpenJDK provided by SAP.
+Each provider has its own set of properties to find needed JDK version, check documentation. If it is impossible to find needed JDK then list of all found distributives will be printed and plugin execution will be failed.
+
 
 # Goals and parameters
 The plug-in provides four goals:
@@ -46,7 +48,7 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -79,7 +81,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <executions>
         <execution>
             <id>call-jdeps</id>
@@ -105,7 +107,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <executions>
         <execution>
             <id>call-jlink</id>
@@ -137,7 +139,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <executions>
         <execution>
             <id>call-tool</id>
