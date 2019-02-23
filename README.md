@@ -35,7 +35,7 @@ Functionality of the plugin is very easy, it just provides way to execute tools 
 At present the plug-in supports listed OpenJDK providers:
 * __LOCAL__ - locally provided JDK will be used for operations
 * __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platform, there are `hotspot` and `openj9`.
-* __[LIBERICA](https://www.bell-sw.com/java.html)__ - Prebuilt distributives of OpenJDK for many platform including embedded ones, __distributives include JavaFX module__
+* __[BELLSOFT](https://www.bell-sw.com/java.html)__ - Prebuilt distributives of OpenJDK 'LIBERICA' for many platform including embedded ones, __distributives include JavaFX module__
 * __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - Prebuilt distributives of OpenJDK provided by SAP.
 Each provider has its own set of properties to find needed JDK version, check documentation. If it is impossible to find needed JDK then list of all found distributives will be printed and plugin execution will be failed.
 
