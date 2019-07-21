@@ -51,6 +51,9 @@ public abstract class AbstractJdkProvider {
 
   public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
+    if (this.mojo.isAllowOctetStream()) {
+      this.mojo.getLog().warn("Loading of 'application/octet-stream' content type is allowed");
+    }
   }
 
   protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
@@ -60,6 +63,10 @@ public abstract class AbstractJdkProvider {
     }
   }
 
+  public boolean isAllowOctetStream() {
+    return this.mojo.isAllowOctetStream();
+  }
+  
   @Nonnull
   protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
     try (final InputStream in = newInputStream(file)) {
@@ -125,7 +132,12 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected String doHttpGetText(@Nonnull final HttpClient client, @Nonnull final String url, final int connectionRequestTimeout, @Nonnull @MustNotContainNull String... acceptedContent) throws IOException {
+  protected String doHttpGetText(
+          @Nonnull final HttpClient client, 
+          @Nonnull final String url, 
+          final int connectionRequestTimeout, 
+          @Nonnull @MustNotContainNull String... acceptedContent
+  ) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
     doGetRequest(client, url, this.mojo.getProxy(), x -> {
       try {
@@ -133,7 +145,7 @@ public abstract class AbstractJdkProvider {
       } catch (IOException ex) {
         throw new IORuntimeWrapperException(ex);
       }
-    },  connectionRequestTimeout, acceptedContent);
+    },  connectionRequestTimeout, this.isAllowOctetStream(), acceptedContent);
     return result.get();
   }
 
@@ -144,13 +156,21 @@ public abstract class AbstractJdkProvider {
    * @param url             url of the content file
    * @param targetFile      target file to save the content
    * @param digest          calculator of needed digest
+   * @param connectionRequestTimeout timeout for connection request
    * @param acceptedContent mime types of accepted content
    * @return response headers
    * @throws IOException it any transport error
    */
   @MustNotContainNull
   @Nonnull
-  protected Header[] doHttpGetIntoFile(@Nonnull final HttpClient client, @Nonnull final String url, @Nonnull final Path targetFile, @Nonnull final MessageDigest digest, final int connectionRequestTimeout, @Nonnull @MustNotContainNull final String... acceptedContent) throws IOException {
+  protected Header[] doHttpGetIntoFile(
+          @Nonnull final HttpClient client, 
+          @Nonnull final String url, 
+          @Nonnull final Path targetFile, 
+          @Nonnull final MessageDigest digest, 
+          final int connectionRequestTimeout, 
+          @Nonnull @MustNotContainNull final String... acceptedContent
+  ) throws IOException {
     final Log log = this.mojo.getLog();
     log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(), connectionRequestTimeout));
 
@@ -211,7 +231,7 @@ public abstract class AbstractJdkProvider {
             System.out.println();
           }
         }
-      }, connectionRequestTimeout, acceptedContent);
+      }, connectionRequestTimeout, this.isAllowOctetStream(), acceptedContent);
     } catch (IORuntimeWrapperException ex) {
       throw ex.getWrapped();
     }

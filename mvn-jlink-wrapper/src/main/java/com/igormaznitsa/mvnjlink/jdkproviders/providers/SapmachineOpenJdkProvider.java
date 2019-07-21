@@ -167,7 +167,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime);
+      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime, HttpUtils.MIME_OCTET_STREAM);
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 

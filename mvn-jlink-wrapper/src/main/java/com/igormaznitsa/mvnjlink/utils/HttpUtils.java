@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.igormaznitsa.mvnjlink.utils;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
@@ -63,8 +62,11 @@ import java.util.function.Consumer;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Stream.of;
+import org.apache.http.entity.ContentType;
 
 public final class HttpUtils {
+
+  public static final String MIME_OCTET_STREAM = "application/octet-stream";
 
   private HttpUtils() {
 
@@ -73,18 +75,19 @@ public final class HttpUtils {
   @Nonnull
   @MustNotContainNull
   public static Header[] doGetRequest(
-      @Nonnull final HttpClient client,
-      @Nonnull final String urlLink,
-      @Nullable final ProxySettings proxySettings,
-      @Nonnull final Consumer<HttpEntity> consumer,
-      final int timeout,
-      @Nonnull @MustNotContainNull final String... acceptedContent
+          @Nonnull final HttpClient client,
+          @Nonnull final String urlLink,
+          @Nullable final ProxySettings proxySettings,
+          @Nonnull final Consumer<HttpEntity> consumer,
+          final int timeout,
+          final boolean allowOctetStream,
+          @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
-    
+
     final RequestConfig.Builder config = RequestConfig
-        .custom()
-        .setSocketTimeout(timeout)
-        .setConnectTimeout(timeout);
+            .custom()
+            .setSocketTimeout(timeout)
+            .setConnectTimeout(timeout);
 
     if (proxySettings != null) {
       final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);
@@ -93,8 +96,15 @@ public final class HttpUtils {
 
     final HttpGet methodGet = new HttpGet(urlLink);
 
+    if (allowOctetStream) {
+      if (Arrays.stream(acceptedContent).noneMatch(x -> x.trim().equalsIgnoreCase(MIME_OCTET_STREAM))) {
+        acceptedContent = Arrays.copyOf(acceptedContent, acceptedContent.length + 1);
+        acceptedContent[acceptedContent.length - 1] = MIME_OCTET_STREAM;
+      }
+    }
+
     if (acceptedContent.length != 0) {
-      methodGet.addHeader("Accept", of(acceptedContent).collect(joining(",")));
+      methodGet.addHeader("Accept", of(acceptedContent).collect(joining(", ")));
     }
 
     methodGet.setConfig(config.build());
@@ -108,10 +118,10 @@ public final class HttpUtils {
       }
 
       final HttpEntity entity = response.getEntity();
-      final Header contentType = entity.getContentType();
+      final ContentTypeParsed contentType = new ContentTypeParsed(ContentType.get(entity).getMimeType());
 
-      if (acceptedContent.length != 0 && of(acceptedContent).anyMatch(x -> x.equalsIgnoreCase(contentType.getValue()))) {
-        throw new IOException("Unexpected content type : " + contentType.getValue());
+      if (acceptedContent.length != 0 && of(acceptedContent).map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
+        throw new IOException("Unexpected content type : " + ContentType.get(entity).getMimeType() + " (expected: " + Arrays.toString(acceptedContent) + ")");
       }
 
       consumer.accept(entity);
@@ -154,7 +164,7 @@ public final class HttpUtils {
       if (proxy.hasCredentials()) {
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(new AuthScope(proxy.host, proxy.port),
-            new NTCredentials(GetUtils.ensureNonNull(proxy.username, ""), proxy.password, extractComputerName(), extractDomainName()));
+                new NTCredentials(GetUtils.ensureNonNull(proxy.username, ""), proxy.password, extractComputerName(), extractDomainName()));
         builder.setDefaultCredentialsProvider(credentialsProvider);
         logger.debug(String.format("Credentials provider has been created for proxy (username : %s): %s", proxy.username, proxy.toString()));
       }
@@ -222,12 +232,12 @@ public final class HttpUtils {
             // do nothing
           }
         };
-        sslcontext.init(null, new TrustManager[] {tm}, null);
+        sslcontext.init(null, new TrustManager[]{tm}, null);
 
         final SSLConnectionSocketFactory sslfactory = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
         final Registry<ConnectionSocketFactory> r = RegistryBuilder.<ConnectionSocketFactory>create()
-            .register("https", sslfactory)
-            .register("http", new PlainConnectionSocketFactory()).build();
+                .register("https", sslfactory)
+                .register("http", new PlainConnectionSocketFactory()).build();
 
         builder.setConnectionManager(new BasicHttpClientConnectionManager(r));
         builder.setSSLSocketFactory(sslfactory);
@@ -240,6 +250,5 @@ public final class HttpUtils {
     }
     return builder.build();
   }
-
 
 }

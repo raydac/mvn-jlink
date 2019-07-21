@@ -51,6 +51,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
+import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
 import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
@@ -140,7 +141,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
           } catch (IOException ex) {
             throw new IORuntimeWrapperException(ex);
           }
-        }, this.mojo.getConnectionTimeout(), "application/json");
+        }, this.mojo.getConnectionTimeout(), this.isAllowOctetStream(), "application/json");
       } catch (IORuntimeWrapperException ex) {
         throw ex.getWrapped();
       }
@@ -183,7 +184,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
-      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, this.mojo.getConnectionTimeout(), "text/plain"));
+      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, this.mojo.getConnectionTimeout(), HttpUtils.MIME_OCTET_STREAM, "text/plain"));
       log.info("Expected archive SHA256 digest: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
