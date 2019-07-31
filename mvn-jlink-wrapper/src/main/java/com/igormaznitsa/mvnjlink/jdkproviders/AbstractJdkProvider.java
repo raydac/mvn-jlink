@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
@@ -41,6 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
 import static java.lang.String.format;
+import java.nio.file.Files;
 import static java.nio.file.Files.*;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
@@ -51,9 +51,6 @@ public abstract class AbstractJdkProvider {
 
   public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
-    if (this.mojo.isAllowOctetStream()) {
-      this.mojo.getLog().warn("Loading of 'application/octet-stream' content type is allowed");
-    }
   }
 
   protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
@@ -63,10 +60,6 @@ public abstract class AbstractJdkProvider {
     }
   }
 
-  public boolean isAllowOctetStream() {
-    return this.mojo.isAllowOctetStream();
-  }
-  
   @Nonnull
   protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
     try (final InputStream in = newInputStream(file)) {
@@ -109,7 +102,6 @@ public abstract class AbstractJdkProvider {
     return this.mojo.isOfflineModeActive();
   }
 
-
   @Nonnull
   protected String findCurrentOs(@Nonnull final String macOsId) {
     final String defaultOs;
@@ -133,9 +125,9 @@ public abstract class AbstractJdkProvider {
 
   @Nonnull
   protected String doHttpGetText(
-          @Nonnull final HttpClient client, 
-          @Nonnull final String url, 
-          final int connectionRequestTimeout, 
+          @Nonnull final HttpClient client,
+          @Nonnull final String url,
+          final int connectionRequestTimeout,
           @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
@@ -145,17 +137,17 @@ public abstract class AbstractJdkProvider {
       } catch (IOException ex) {
         throw new IORuntimeWrapperException(ex);
       }
-    },  connectionRequestTimeout, this.isAllowOctetStream(), acceptedContent);
+    }, connectionRequestTimeout, false, acceptedContent);
     return result.get();
   }
 
   /**
    * Download content file through GET request and calculate its SHA256 hash
    *
-   * @param client          http client
-   * @param url             url of the content file
-   * @param targetFile      target file to save the content
-   * @param digest          calculator of needed digest
+   * @param client http client
+   * @param url url of the content file
+   * @param targetFile target file to save the content
+   * @param digest calculator of needed digest
    * @param connectionRequestTimeout timeout for connection request
    * @param acceptedContent mime types of accepted content
    * @return response headers
@@ -164,11 +156,11 @@ public abstract class AbstractJdkProvider {
   @MustNotContainNull
   @Nonnull
   protected Header[] doHttpGetIntoFile(
-          @Nonnull final HttpClient client, 
-          @Nonnull final String url, 
-          @Nonnull final Path targetFile, 
-          @Nonnull final MessageDigest digest, 
-          final int connectionRequestTimeout, 
+          @Nonnull final HttpClient client,
+          @Nonnull final String url,
+          @Nonnull final Path targetFile,
+          @Nonnull final MessageDigest digest,
+          final int connectionRequestTimeout,
           @Nonnull @MustNotContainNull final String... acceptedContent
   ) throws IOException {
     final Log log = this.mojo.getLog();
@@ -225,13 +217,22 @@ public abstract class AbstractJdkProvider {
             fileOutStream.flush();
           }
         } catch (IOException ex) {
+          log.error(String.format("Can't download %s into %s: %s", url, targetFile, ex.getMessage()));
+          if (Files.exists(targetFile)) {
+            log.debug(String.format("Deleting file %s", targetFile));
+            try {
+              Files.delete(targetFile);
+            } catch (IOException exx) {
+              log.error(String.format("Can't delete file %s: %s", targetFile, exx.getMessage()));
+            }
+          }
           throw new IORuntimeWrapperException(ex);
         } finally {
           if (showProgress) {
             System.out.println();
           }
         }
-      }, connectionRequestTimeout, this.isAllowOctetStream(), acceptedContent);
+      }, connectionRequestTimeout, true, acceptedContent);
     } catch (IORuntimeWrapperException ex) {
       throw ex.getWrapped();
     }
@@ -277,6 +278,7 @@ public abstract class AbstractJdkProvider {
 
   @FunctionalInterface
   public interface IoLoader {
+
     void doLoad(@Nonnull final Path destinationFolder) throws IOException;
   }
 }

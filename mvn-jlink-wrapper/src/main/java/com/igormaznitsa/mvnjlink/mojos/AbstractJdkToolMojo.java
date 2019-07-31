@@ -63,13 +63,6 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   private boolean useOnlyCache;
 
   /**
-   * Allow content type 'application/octet-stream'
-   * @since 1.0.3
-   */
-  @Parameter(defaultValue = "false", name = "allowOctetStream")
-  private boolean allowOctetStream;
-  
-  /**
    * Path to JDK cache folder.
    */
   @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
@@ -127,14 +120,6 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   @Component
   private ToolchainManager toolchainManager;
 
-  public boolean isAllowOctetStream(){
-    return this.allowOctetStream;
-  }
-  
-  public void setAllowOctetStream(final boolean flag) {
-    this.allowOctetStream = flag;
-  }
-  
   public int getConnectionTimeout() {
     return this.connectionTimeout;
   }
