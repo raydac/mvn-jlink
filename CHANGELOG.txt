@@ -1,4 +1,5 @@
-__1.0.3 (SNAPSHOT)__
+__1.0.3 (31-jul-2019)__
+ - improved processing of case if octet stream is presented as content type
  - minor refactoring of file name escaping
 
 1.0.2 (27-jan-2019)

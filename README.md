@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 9.0+](https://img.shields.io/badge/java-9.0%2b-green.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.0.2|jar)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.0.3|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-red.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![Yandex.Money donation](https://img.shields.io/badge/donation-Я.деньги-yellow.svg)](http://yasobe.ru/na/iamoss)
@@ -8,7 +8,8 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
-__1.0.3 (SNAPSHOT)__
+__1.0.3 (31-jul-2019)__
+ - improved processing of case if octet stream is presented as content type
  - minor refactoring of file name escaping
  
 __1.0.2 (27-jan-2019)__
@@ -51,7 +52,7 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -84,7 +85,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <executions>
         <execution>
             <id>call-jdeps</id>
@@ -110,7 +111,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <executions>
         <execution>
             <id>call-jlink</id>
@@ -142,7 +143,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <executions>
         <execution>
             <id>call-tool</id>
