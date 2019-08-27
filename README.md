@@ -8,6 +8,9 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.4 (SNAPSHOT)__
+ - [#1](https://github.com/raydac/mvn-jlink/issues/1)__`modulePath` string parameter in `jlink` mojo replaced by `modulePaths` string list parameter. Pseudo-path JDK.PROVIDER.JMODS allows to include path to provider's JDK jmods folder.__
+
 __1.0.3 (31-jul-2019)__
  - improved processing of case if octet stream is presented as content type
  - minor refactoring of file name escaping
