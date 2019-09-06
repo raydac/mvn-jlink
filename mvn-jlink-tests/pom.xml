@@ -18,6 +18,7 @@
     <module>mvn-jlink-test-local</module>
     <module>mvn-jlink-test-tool</module>
     <module>mvn-jlink-test-adopt</module>
+    <module>mvn-jlink-test-adoptgit</module>
     <module>mvn-jlink-test-liberica</module>
     <module>mvn-jlink-test-sapmachine</module>
   </modules>
