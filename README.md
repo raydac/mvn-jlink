@@ -125,6 +125,9 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
             <configuration>
                 <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
                 <output>${project.build.directory}${file.separator}preparedJDK</output>
+                <modulePaths>
+                    <path>${java.home}${file.separator}jmods</path>
+                </modulePaths>
                 <addModules>
                     <module>java.compiler</module>
                 </addModules>
