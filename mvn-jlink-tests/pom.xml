@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>mvn-jlink-tests</artifactId>
@@ -29,7 +29,7 @@
         <plugin>
           <groupId>com.igormaznitsa</groupId>
           <artifactId>mvn-jlink-wrapper</artifactId>
-          <version>${mvnjlink.version}</version>
+          <version>${mvnjlink.test.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>

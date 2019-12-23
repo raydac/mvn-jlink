@@ -51,19 +51,19 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-11</id>
+                        <id>cache-jdk-13</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
                             <provider>ADOPTGIT</provider>
                             <providerConfig>
-                                <repositoryName>openjdk11-binaries</repositoryName>
-                                <version>11U</version>
+                                <repositoryName>openjdk13-binaries</repositoryName>
+                                <version>13U</version>
                                 <arch>x64</arch>
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
-                                <releaseDate>2019-09-05-20-58</releaseDate>
+                                <releaseDate>2019-12-20-13-11</releaseDate>
                             </providerConfig>
                             <disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>

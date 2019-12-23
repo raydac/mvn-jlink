@@ -35,7 +35,7 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-11</id>
+                        <id>cache-jdk-13</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
@@ -43,7 +43,7 @@
                             <provider>BELLSOFT</provider>
                             <providerConfig>
                                 <type>jdk</type>
-                                <version>11.0.*</version>
+                                <version>13.0.1</version>
                                 <arch>amd64</arch>
                             </providerConfig>
                             <disableSSLcheck>true</disableSSLcheck>

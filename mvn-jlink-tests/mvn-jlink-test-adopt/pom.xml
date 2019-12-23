@@ -35,14 +35,14 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-11</id>
+                        <id>cache-jdk-13</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
                             <provider>ADOPT</provider>
                             <providerConfig>
-                                <release>jdk-11*</release>
+                                <release>jdk-13*</release>
                                 <arch>x64</arch>
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
