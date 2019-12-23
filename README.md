@@ -8,6 +8,9 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.5 (23-dec-2019)__
+ - [#3](https://github.com/raydac/mvn-jlink/issues/2) corrected exception processing on parsing of Liberica src package name
+
 __1.0.4 (22-sep-2019)__
  - [#2](https://github.com/raydac/mvn-jlink/issues/2) added provider to load JDK from the [Adopt Git repository](https://github.com/AdoptOpenJDK)
  - [#1](https://github.com/raydac/mvn-jlink/issues/1)__`modulePath` string parameter in `jlink` mojo replaced by `modulePaths` string list parameter. Pseudo-path JDK.PROVIDER.JMODS allows to include path to provider's JDK jmods folder.__
