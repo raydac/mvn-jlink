@@ -16,6 +16,17 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
+import static java.nio.file.Files.delete;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Stream.of;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
+
+
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
@@ -25,15 +36,6 @@ import com.igormaznitsa.mvnjlink.utils.ArchUtils;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.http.Header;
-import org.apache.http.client.HttpClient;
-import org.apache.maven.plugin.logging.Log;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -46,22 +48,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
-import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
-import static java.nio.file.Files.*;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Stream.of;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
+import javax.annotation.Nonnull;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
+import org.apache.http.client.HttpClient;
+import org.apache.maven.plugin.logging.Log;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Provider of prebuilt OpenJDK archives from <a href="https://www.bell-sw.com/java.html">LibericaOpenJDK</a>
  */
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
-  private static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
-  private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
+  static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
+  static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   public LibericaOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
@@ -215,7 +217,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     }
   }
 
-  private static class ReleaseList {
+  static class ReleaseList {
     private final List<Release> releases = new ArrayList<>();
 
     private ReleaseList() {
@@ -248,7 +250,11 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
             if (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz")) {
               final String link = asset.getString("browser_download_url");
-              this.releases.add(new Release(fileName, link, mime, size));
+              try {
+                this.releases.add(new Release(fileName, link, mime, size));
+              } catch (IllegalArgumentException ex) {
+                log.warn("Detected non-standard named archive: " + fileName);
+              }
             } else {
               log.debug("Ignoring because non-unpackable file: " + asset);
             }
@@ -277,9 +283,9 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       return this.releases.stream().map(Release::toString).collect(joining("\n"));
     }
 
-    private static class Release {
+    static class Release {
 
-      private static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
