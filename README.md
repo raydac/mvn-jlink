@@ -8,6 +8,9 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
+__1.0.6 (SNAPSHOT)__
+ - improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
+
 __1.0.5 (23-dec-2019)__
  - [#3](https://github.com/raydac/mvn-jlink/issues/2) corrected exception processing on parsing of Liberica src package name
 
@@ -18,21 +21,6 @@ __1.0.4 (22-sep-2019)__
 __1.0.3 (31-jul-2019)__
  - improved processing of case if octet stream is presented as content type
  - minor refactoring of file name escaping
- 
-__1.0.2 (27-jan-2019)__
- - added [SapMachine OpenJdk provider](https://github.com/SAP/SapMachine)
- - fixed work with release pages in GitHub API
- - reworked connection timeout and `connectionRequestTimeout` renamed to `connectionTimeout`
- - bugfixing
- 
-__1.0.1 (20-jan-2019)__
- - added parameter `connectionRequestTimeout` for requests
- - improved Liberica file name parser to support abc chars in JDK version
- - improved bin folder search
- - added check of jmods folder existing
-
-__1.0.0 (12-jan-2019)__
- - initial version
 
 # Introduction
 Since Java 9, JDK has modules (project Jigsaw) and it provides more or less smoothly way to build JDK versions containing only needed modules. Such formed JDK image can be delivered together with Java application. Because I have several Java based OSS projects (like [SciaReto](http://www.igormaznitsa.com/netbeans-mmd-plugin/) and [ZXPoly emulator](https://github.com/raydac/zxpoly)) which would be nicer with provided pre-built JDK image, I decided to automate processing of JDK image build and have developed the maven plug-in (because Maven is the main tool which I use for OSS projects).

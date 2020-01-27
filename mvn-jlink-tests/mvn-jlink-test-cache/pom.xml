@@ -46,10 +46,16 @@
                                 <release>jdk8u192-b12</release>
                                 <arch>x64</arch>
                                 <type>jdk</type>
+                                <os>linux</os>
                                 <impl>hotspot</impl>
                             </providerConfig>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
                             <jdkCachePath>${project.build.directory}${file.separator}jdkCache</jdkCachePath>
+                            <pathAsProperty>
+                                <jdk.javac.file>/**/javac</jdk.javac.file>
+                                <jdk.jstat.file>/**/jstat</jdk.jstat.file>
+                                <jdk.jexec.file>/**/lib/jexec*</jdk.jexec.file>
+                            </pathAsProperty>
                         </configuration>
                     </execution>
                 </executions>
