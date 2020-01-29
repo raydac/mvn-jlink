@@ -8,7 +8,7 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
-__1.0.6 (20-jan-2020)__
+__1.0.6 (29-jan-2020)__
  - added support of properties to override some config parameters
  - [#4](https://github.com/raydac/mvn-jlink/issues/4) improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
 
