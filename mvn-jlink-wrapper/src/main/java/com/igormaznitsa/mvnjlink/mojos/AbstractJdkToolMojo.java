@@ -20,19 +20,6 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.JdkProviderId;
 import com.igormaznitsa.mvnjlink.utils.ProxySettings;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.toolchain.Toolchain;
-import org.apache.maven.toolchain.ToolchainManager;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -43,6 +30,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.toolchain.Toolchain;
+import org.apache.maven.toolchain.ToolchainManager;
 
 public abstract class AbstractJdkToolMojo extends AbstractMojo {
   /**
@@ -88,6 +89,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   /**
    * Define connection timeout for HTTP requests in milliseconds.
+   *
    * @since 1.0.2
    */
   @Parameter(name = "connectionTimeout", defaultValue = "60000")
@@ -124,8 +126,20 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     return this.connectionTimeout;
   }
 
+  @Nullable
+  public String getToolJdk() {
+    return this.findProperty("mvn.jlink.tool.jdk", this.toolJdk);
+  }
+
+  /**
+   * Check that only cache must be used without network operations.
+   *
+   * @return true if only cache, false otherwise
+   */
   public boolean isUseOnlyCache() {
-    return this.useOnlyCache;
+    return Boolean.parseBoolean(
+        this.findProperty("mvn.jlink.use.only.cache",
+            Boolean.toString(this.useOnlyCache)));
   }
 
   @Nonnull
@@ -135,7 +149,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   @Nonnull
   public String getJdkCachePath() {
-    return this.jdkCachePath;
+    return Objects.requireNonNull(this.findProperty("mvn.jlink.jdk.cache.path", this.jdkCachePath));
   }
 
   @Nonnull
@@ -148,12 +162,19 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     return this.proxy;
   }
 
+  /**
+   * Check that SSL certificate check should be skipped.
+   *
+   * @return true if should be skipped, false otherwise
+   */
   public boolean isDisableSSLcheck() {
-    return this.disableSSLcheck;
+    return Boolean.parseBoolean(
+        this.findProperty("mvn.jlink.disable.ssl.check",
+            Boolean.toString(this.disableSSLcheck)));
   }
 
   public boolean isSkip() {
-    return this.skip;
+    return Boolean.parseBoolean(this.findProperty("mvn.jlink.skip", Boolean.toString(this.skip)));
   }
 
   @Nonnull
@@ -161,6 +182,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     return this.project;
   }
 
+  @Override
   public final void execute() throws MojoExecutionException, MojoFailureException {
     if (isSkip()) {
       this.getLog().debug("Skip flag is active");
@@ -188,7 +210,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
     final Path result = Paths.get(storeFolder);
 
-    if (!Files.isDirectory(result)) {
+    if (!result.toFile().isDirectory()) {
       this.getLog().info("Creating cache folder: " + result);
       Files.createDirectories(result);
     }
@@ -221,8 +243,8 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     String toolPath = this.toolPathCache.get(toolName);
 
     if (toolPath == null) {
-      log.debug("toolJdk = " + this.toolJdk);
-      if (this.toolJdk == null) {
+      log.debug("toolJdk = " + this.getToolJdk());
+      if (this.getToolJdk() == null) {
         final Toolchain toolchain = getToolchain();
         log.debug("Toolchain: " + toolchain);
         if (toolchain == null) {
@@ -235,8 +257,8 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
           toolPath = SystemUtils.ensureOsExtension(toolchain.findTool(toolName));
         }
       } else {
-        final Path jdkHome = Paths.get(this.toolJdk);
-        if (Files.isDirectory(jdkHome)) {
+        final Path jdkHome = Paths.get(this.getToolJdk());
+        if (jdkHome.toFile().isDirectory()) {
           log.debug("Tool base JDK home: " + jdkHome);
           final Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
           toolPath = foundPath == null ? null : foundPath.toString();
@@ -280,4 +302,16 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
 
   public abstract void onExecute() throws MojoExecutionException, MojoFailureException;
+
+  @Nullable
+  public String findProperty(
+      @Nonnull final String key,
+      @Nullable final String dflt
+  ) {
+    final Properties properties = new Properties(this.project.getProperties());
+    properties.putAll(this.session.getSystemProperties());
+    properties.putAll(this.session.getUserProperties());
+    return properties.getProperty(key, dflt);
+  }
+
 }
