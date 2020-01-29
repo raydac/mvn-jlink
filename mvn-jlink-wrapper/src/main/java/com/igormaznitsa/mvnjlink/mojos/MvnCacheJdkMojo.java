@@ -49,6 +49,14 @@ public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
    * Find file paths in JDK root and place found ones as project properties.
    * Tag name is used as property name (it will be added into project properties) and value contains ANT match pattern.
    * If any file for pattern is not found then mojo execution failed
+   * <pre>
+   * {@code
+   * <pathAsProperty>
+   *   <path.to.javac>/**&#47;javac</path.to.javac>
+   *   <path.to.jlink>/**&#47;bin/jlink</path.to.jlink>
+   * </pathAsProperty>
+   * }
+   * </pre>
    *
    * @since 1.0.6
    */

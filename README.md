@@ -8,8 +8,9 @@
 ![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
 
 # Changelog
-__1.0.6 (SNAPSHOT)__
- - improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
+__1.0.6 (20-jan-2020)__
+ - added support of properties to override some config parameters
+ - [#4](https://github.com/raydac/mvn-jlink/issues/4) improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
 
 __1.0.5 (23-dec-2019)__
  - [#3](https://github.com/raydac/mvn-jlink/issues/2) corrected exception processing on parsing of Liberica src package name
