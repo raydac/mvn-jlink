@@ -49,7 +49,7 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
     <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -82,7 +82,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
     <executions>
         <execution>
             <id>call-jdeps</id>
@@ -108,7 +108,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
     <executions>
         <execution>
             <id>call-jlink</id>
@@ -143,7 +143,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
     <executions>
         <execution>
             <id>call-tool</id>
