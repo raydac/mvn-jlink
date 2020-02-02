@@ -315,7 +315,8 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
       @Nonnull final String key,
       @Nullable final String dflt
   ) {
-    final Properties properties = new Properties(this.project.getProperties());
+    final Properties properties = new Properties();
+    properties.putAll(this.project.getProperties());
     properties.putAll(this.session.getSystemProperties());
     properties.putAll(this.session.getUserProperties());
     return properties.getProperty(key, dflt);

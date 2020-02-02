@@ -10,7 +10,7 @@
 # Changelog
 
 __1.0.7 (SNAPSHOT)__
- - added support of load JDK from [GraalVM-CE repository](https://github.com/graalvm/graalvm-ce-builds/releases)
+ - added support of load JDK from [GraalVM-CE repository](https://github.com/graalvm/graalvm-ce-builds)
 
 __1.0.6 (29-jan-2020)__
  - added support of properties to override some config parameters
@@ -39,8 +39,8 @@ At present the plug-in supports listed OpenJDK providers:
 * __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platforms, there are `hotspot` and `openj9`.
 * __[ADOPTGIT](https://github.com/AdoptOpenJDK)__ - Prebuilt AdoptOpenJDK distributives for many platform hosted by GitHub.
 * __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - Prebuilt distributives of OpenJDK provided by SAP.
+* __[GRAALVMCE](https://github.com/graalvm/graalvm-ce-builds)__ - Prebuilt JDK distributives of GraalVM Community Edition.
 Each provider has its own set of properties to find needed JDK version, check documentation. If it is impossible to find needed JDK then list of all found distributives will be printed and plugin execution will be failed.
-
 
 # Goals and parameters
 The plug-in provides four goals:
@@ -53,7 +53,7 @@ The example of configuration caches OpenJDK from ADOPT provider in project build
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -86,7 +86,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <executions>
         <execution>
             <id>call-jdeps</id>
@@ -112,7 +112,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <executions>
         <execution>
             <id>call-jlink</id>
@@ -147,7 +147,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <executions>
         <execution>
             <id>call-tool</id>
