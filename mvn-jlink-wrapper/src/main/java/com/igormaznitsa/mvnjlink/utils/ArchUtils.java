@@ -303,32 +303,39 @@ public final class ArchUtils {
         }
       }
 
-      final File destinationFolderAsFile = destinationFolder.toFile();
-      final File[] filesInRoot = destinationFolderAsFile.listFiles();
-      if (filesInRoot.length == 1 && filesInRoot[0].isDirectory() && "Contents".equals(filesInRoot[0].getName())) {
-        logger.debug("Detected archive in MAC format");
-        // it is unpacked mac archive
-        File unpackedHomeFolder = new File(filesInRoot[0], "Home");
-        if (unpackedHomeFolder.isDirectory()) {
-          logger.info("Moving MacOS Home folder to the root level");
-          logger.debug("Found Home folder, copying it as JDK root");
-          // rename root
-          final File renamedDestinationFolder = new File(destinationFolderAsFile.getParent(), "." + destinationFolderAsFile.getName() + "_tmp");
-          logger.debug("Renaming file " + destinationFolderAsFile + " to " + renamedDestinationFolder);
-          if (!destinationFolderAsFile.renameTo(renamedDestinationFolder)) {
-            throw new IOException("Can't rename " + destinationFolderAsFile + " to " + renamedDestinationFolder);
-          }
-          final File tempHomeFolder = new File(new File(renamedDestinationFolder, "Contents"), "Home");
-          logger.debug("Moving folder " + tempHomeFolder + " to " + destinationFolderAsFile);
-          FileUtils.moveDirectory(tempHomeFolder, destinationFolderAsFile);
-          FileUtils.deleteDirectory(renamedDestinationFolder);
-          logger.debug("Temp folder deleted " + renamedDestinationFolder);
-        }
-      }
+      postProcessUnpackedArchive(logger, destinationFolder.toFile());
       return unpackedFilesCounter;
     } finally {
       closeCloseable(zipFile, logger);
       closeCloseable(archiveInputStream, logger);
+    }
+  }
+
+  private static void postProcessUnpackedArchive(@Nonnull final Log logger, @Nonnull final File unpackFolder) throws IOException {
+    final File[] filesInRoot = unpackFolder.listFiles();
+    if (filesInRoot != null
+        && filesInRoot.length == 1
+        && filesInRoot[0].isDirectory()
+        && "contents".equalsIgnoreCase(filesInRoot[0].getName())) {
+      logger.debug("Detected archive prepared for MacOS, moving its internal JDK folder to the root");
+      // it is unpacked mac archive
+      File unpackedHomeFolder = new File(filesInRoot[0], "Home");
+      if (unpackedHomeFolder.isDirectory()) {
+        logger.debug("Found Home folder, copying it as JDK root");
+        // rename root
+        final File renamedDestinationFolder = new File(unpackFolder.getParent(), "." + unpackFolder.getName() + "_tmp");
+        logger.debug("Renaming file " + unpackFolder + " to " + renamedDestinationFolder);
+        if (!unpackFolder.renameTo(renamedDestinationFolder)) {
+          throw new IOException("Can't rename " + unpackFolder + " to " + renamedDestinationFolder);
+        }
+        final File tempHomeFolder = new File(new File(renamedDestinationFolder, "Contents"), "Home");
+        logger.debug("Moving folder " + tempHomeFolder + " to " + unpackFolder);
+        FileUtils.moveDirectory(tempHomeFolder, unpackFolder);
+        FileUtils.deleteDirectory(renamedDestinationFolder);
+        logger.debug("Temp folder deleted " + renamedDestinationFolder);
+      } else {
+        throw new IOException("Can't find Contents/Home sub-folder in MacOS archive");
+      }
     }
   }
 
