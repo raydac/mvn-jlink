@@ -24,6 +24,7 @@ import static java.nio.file.Files.isDirectory;
 import static java.nio.file.Files.newInputStream;
 import static java.nio.file.Files.newOutputStream;
 import static java.nio.file.Paths.get;
+import static java.util.Arrays.stream;
 import static java.util.Locale.ENGLISH;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
@@ -314,12 +315,14 @@ public final class ArchUtils {
   private static void postProcessUnpackedArchive(@Nonnull final Log logger, @Nonnull final File unpackFolder) throws IOException {
     final File[] filesInRoot = unpackFolder.listFiles();
     if (filesInRoot != null
-        && filesInRoot.length == 1
-        && filesInRoot[0].isDirectory()
-        && "contents".equalsIgnoreCase(filesInRoot[0].getName())) {
+        && filesInRoot.length != 0
+        && stream(filesInRoot).filter(File::isDirectory).anyMatch(x -> "contents".equalsIgnoreCase(x.getName()))) {
       logger.debug("Detected archive prepared for MacOS, moving its internal JDK folder to the root");
       // it is unpacked mac archive
-      File unpackedHomeFolder = new File(filesInRoot[0], "Home");
+      final File unpackedHomeFolder = new File(stream(filesInRoot).filter(File::isDirectory)
+          .filter(x -> "contents".equalsIgnoreCase(x.getName()))
+          .findFirst()
+          .orElseThrow(() -> new IOException("Can't find Contents folder")), "Home");
       if (unpackedHomeFolder.isDirectory()) {
         logger.debug("Found Home folder, copying it as JDK root");
         // rename root
