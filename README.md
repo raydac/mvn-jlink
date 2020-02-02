@@ -9,7 +9,7 @@
 
 # Changelog
 
-__1.0.7 (SNAPSHOT)__
+__1.0.7 (02-feb-2020)__
  - added support of load JDK from [GraalVM-CE repository](https://github.com/graalvm/graalvm-ce-builds)
 
 __1.0.6 (29-jan-2020)__
