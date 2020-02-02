@@ -16,19 +16,24 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
-import com.igormaznitsa.meta.annotation.MustNotContainNull;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.maven.plugin.logging.Log;
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+import static com.igormaznitsa.mvnjlink.utils.SystemUtils.closeCloseable;
+import static java.nio.file.Files.createDirectories;
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.newOutputStream;
+import static java.nio.file.Paths.get;
+import static java.util.Locale.ENGLISH;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Stream.of;
+import static org.apache.commons.io.FilenameUtils.normalize;
+import static org.apache.commons.io.IOUtils.copy;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,16 +42,17 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
-
-import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
-import static com.igormaznitsa.mvnjlink.utils.SystemUtils.closeCloseable;
-import static java.nio.file.Files.*;
-import static java.nio.file.Paths.get;
-import static java.util.Locale.ENGLISH;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Stream.of;
-import static org.apache.commons.io.FilenameUtils.normalize;
-import static org.apache.commons.io.IOUtils.copy;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.logging.Log;
 
 public final class ArchUtils {
 
@@ -294,6 +300,29 @@ public final class ArchUtils {
           }
         } else {
           logger.debug("Archive entry " + normalizedPath + " ignored");
+        }
+      }
+
+      final File destinationFolderAsFile = destinationFolder.toFile();
+      final File[] filesInRoot = destinationFolderAsFile.listFiles();
+      if (filesInRoot.length == 1 && filesInRoot[0].isDirectory() && "Contents".equals(filesInRoot[0].getName())) {
+        logger.debug("Detected archive in MAC format");
+        // it is unpacked mac archive
+        File unpackedHomeFolder = new File(filesInRoot[0], "Home");
+        if (unpackedHomeFolder.isDirectory()) {
+          logger.info("Moving MacOS Home folder to the root level");
+          logger.debug("Found Home folder, copying it as JDK root");
+          // rename root
+          final File renamedDestinationFolder = new File(destinationFolderAsFile.getParent(), "." + destinationFolderAsFile.getName() + "_tmp");
+          logger.debug("Renaming file " + destinationFolderAsFile + " to " + renamedDestinationFolder);
+          if (!destinationFolderAsFile.renameTo(renamedDestinationFolder)) {
+            throw new IOException("Can't rename " + destinationFolderAsFile + " to " + renamedDestinationFolder);
+          }
+          final File tempHomeFolder = new File(new File(renamedDestinationFolder, "Contents"), "Home");
+          logger.debug("Moving folder " + tempHomeFolder + " to " + destinationFolderAsFile);
+          FileUtils.moveDirectory(tempHomeFolder, destinationFolderAsFile);
+          FileUtils.deleteDirectory(renamedDestinationFolder);
+          logger.debug("Temp folder deleted " + renamedDestinationFolder);
         }
       }
       return unpackedFilesCounter;
