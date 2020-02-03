@@ -47,8 +47,34 @@ The plug-in provides four goals:
 
 ## Goal `cache-jdk`
 The goal just downloads JDK from a provider, unpack it and placing the JDK folder path into Maven custom named project property which can be used by other plug-ins.
-### Example
-The example of configuration caches OpenJDK from ADOPT provider in project build folder and then save path to its folder into `jlink.jdk.path` project property
+### Examples
+Code snippet below shows caching of GraalVM CE, the GraalVM distributive will be automatically downloaded and unpacked into plug-in cache and its path will be provided in maven project through `jlink.jdk.path` property     
+```xml
+<plugin>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink-wrapper</artifactId>
+    <version>1.0.7</version>
+    <executions>
+        <execution>
+            <id>cache-jdk11-graalvmce</id>
+            <goals>
+                <goal>cache-jdk</goal>
+            </goals>
+            <configuration>
+                <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
+                <provider>GRAALVMCE</provider>
+                <providerConfig>
+                   <type>java11</type>
+                   <version>19.3.1</version>
+                   <arch>amd64</arch>
+                </providerConfig>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
+
+Code snippet below shows configuration to cache OpenJDK from ADOPT provider in project build folder and then save path to its folder into `jlink.jdk.path` project property
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
