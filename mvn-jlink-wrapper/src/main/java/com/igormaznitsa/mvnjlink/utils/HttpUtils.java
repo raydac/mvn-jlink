@@ -82,6 +82,7 @@ public final class HttpUtils {
       @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
       @Nonnull final String urlLink,
       @Nullable final ProxySettings proxySettings,
+      @Nullable final Consumer<HttpResponse> responseConsumer,
       @Nonnull final Consumer<HttpEntity> consumer,
       final int timeout,
       final boolean allowOctetStream,
@@ -119,6 +120,10 @@ public final class HttpUtils {
     final HttpResponse response = client.execute(methodGet);
     try {
       final StatusLine statusLine = response.getStatusLine();
+
+      if (responseConsumer != null) {
+        responseConsumer.accept(response);
+      }
 
       if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
         throw new IOException(String.format("Can't doLoad SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));

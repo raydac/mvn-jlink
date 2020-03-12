@@ -38,6 +38,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,6 +47,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -149,14 +151,76 @@ public abstract class AbstractJdkProvider {
       @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
-    doGetRequest(client, customizer, url, this.mojo.getProxy(), x -> {
-      try {
-        result.set(EntityUtils.toString(x));
-      } catch (IOException ex) {
-        throw new IORuntimeWrapperException(ex);
-      }
-    }, connectionRequestTimeout, false, acceptedContent);
+    doGetRequest(client, customizer, url, this.mojo.getProxy(),
+        x -> this.logRateLimitIfPresented(url, x),
+        x -> {
+          try {
+            result.set(EntityUtils.toString(x));
+          } catch (IOException ex) {
+            throw new IORuntimeWrapperException(ex);
+          }
+        }, connectionRequestTimeout, false, acceptedContent);
     return result.get();
+  }
+
+  protected void logRateLimitIfPresented(@Nonnull final String resourceUrl, @Nonnull final HttpResponse response) {
+    final Log logger = this.mojo.getLog();
+
+    Header rateLimitLimit = response.getFirstHeader("X-RateLimit-Limit");
+    if (rateLimitLimit == null) {
+      rateLimitLimit = response.getFirstHeader("X-Rate-Limit-Limit");
+    }
+
+    Header rateLimitRemaining = response.getFirstHeader("X-RateLimit-Remaining");
+    if (rateLimitRemaining == null) {
+      rateLimitRemaining = response.getFirstHeader("X-Rate-Limit-Remaining");
+    }
+
+    Header rateLimitReset = response.getFirstHeader("X-RateLimit-Reset");
+    if (rateLimitReset == null) {
+      rateLimitReset = response.getFirstHeader("X-Rate-Limit-Reset");
+    }
+
+    final String rateLimitLimitValue = rateLimitLimit == null ? null : rateLimitLimit.getValue().trim();
+    final String rateLimitRemainingValue = rateLimitRemaining == null ? null : rateLimitRemaining.getValue().trim();
+    final String rateLimitResetValue = rateLimitReset == null ? null : rateLimitReset.getValue().trim();
+
+    long rateLimitLimitLong;
+    try {
+      rateLimitLimitLong = rateLimitLimitValue == null ? -1L : Long.parseLong(rateLimitLimitValue);
+    } catch (NumberFormatException ex) {
+      logger.warn(format("Detected unexpected '%s' value in rate limit limit header for '%s'", rateLimitLimitValue, resourceUrl));
+      rateLimitLimitLong = -1L;
+    }
+
+    long rateLimitRemainingLong;
+    try {
+      rateLimitRemainingLong = rateLimitRemainingValue == null ? -1L : Long.parseLong(rateLimitRemainingValue);
+    } catch (NumberFormatException ex) {
+      logger.warn(format("Detected unexpected '%s' value in rate limit remaining header for '%s'", rateLimitRemainingValue, resourceUrl));
+      rateLimitRemainingLong = -1L;
+    }
+
+    long rateLimitResetLong;
+    try {
+      rateLimitResetLong = rateLimitResetValue == null ? -1L : Long.parseLong(rateLimitResetValue);
+    } catch (NumberFormatException ex) {
+      logger.warn(format("Detected unexpected '%s' value in rate limit reset header for '%s'", rateLimitResetValue, resourceUrl));
+      rateLimitResetLong = -1L;
+    }
+    logger.debug(format("Resource '%s', limit-remaning=%d, limit-limit=%d, limit-reset=%d", resourceUrl, rateLimitRemainingLong, rateLimitLimitLong, rateLimitResetLong));
+
+    final String rateLimitResetDate = rateLimitResetLong < 0L ? "UNKNOWN" : new Date(rateLimitResetLong * 1000L).toString();
+
+    if (rateLimitRemainingLong < 0L) {
+      logger.debug("Rate limit remaining is not provided");
+    } else if (rateLimitRemainingLong == 0L) {
+      logger.error(format("Detected zero limit remaining for '%s'! Rate reeset expected at '%s'", resourceUrl, rateLimitResetDate));
+    } else if (rateLimitRemainingLong < 5L) {
+      logger.warn(format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
+    } else {
+      logger.info(format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
+    }
   }
 
   /**
@@ -188,70 +252,72 @@ public abstract class AbstractJdkProvider {
     Header[] responseHeaders;
 
     try {
-      responseHeaders = doGetRequest(client, customizer, url, this.mojo.getProxy(), httpEntity -> {
-        boolean showProgress = false;
-        try {
-          try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
-            final byte[] buffer = new byte[1024 * 1024];
-
-            final long contentSize = httpEntity.getContentLength();
-            final InputStream inStream = httpEntity.getContent();
-
-            log.debug("Reported content size: " + contentSize + " bytes");
-
-            final int PROGRESSBAR_WIDTH = 10;
-            final String LOADING_TITLE = format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
-
-            showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
-
-            if (!showProgress) {
-              log.info(String.format("Loading file %s, size %d bytes", targetFile.getFileName().toString(), contentSize));
-            }
-
-            long downloadByteCounter = 0L;
-
-            int lastShownProgress = -1;
-
-            if (showProgress) {
-              lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
-            }
-
-            digest.reset();
-
-            while (!Thread.currentThread().isInterrupted()) {
-              final int length = inStream.read(buffer);
-              if (length < 0) {
-                break;
-              }
-
-              fileOutStream.write(buffer, 0, length);
-              digest.update(buffer, 0, length);
-
-              downloadByteCounter += length;
-
-              if (showProgress) {
-                lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
-              }
-            }
-            fileOutStream.flush();
-          }
-        } catch (IOException ex) {
-          log.error(String.format("Can't download %s into %s: %s", url, targetFile, ex.getMessage()));
-          if (Files.exists(targetFile)) {
-            log.debug(String.format("Deleting file %s", targetFile));
+      responseHeaders = doGetRequest(client, customizer, url, this.mojo.getProxy(),
+          x -> this.logRateLimitIfPresented(url, x),
+          httpEntity -> {
+            boolean showProgress = false;
             try {
-              Files.delete(targetFile);
-            } catch (IOException exx) {
-              log.error(String.format("Can't delete file %s: %s", targetFile, exx.getMessage()));
+              try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
+                final byte[] buffer = new byte[1024 * 1024];
+
+                final long contentSize = httpEntity.getContentLength();
+                final InputStream inStream = httpEntity.getContent();
+
+                log.debug("Reported content size: " + contentSize + " bytes");
+
+                final int PROGRESSBAR_WIDTH = 10;
+                final String LOADING_TITLE = format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
+
+                showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
+
+                if (!showProgress) {
+                  log.info(format("Loading file %s, size %d bytes", targetFile.getFileName().toString(), contentSize));
+                }
+
+                long downloadByteCounter = 0L;
+
+                int lastShownProgress = -1;
+
+                if (showProgress) {
+                  lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
+                }
+
+                digest.reset();
+
+                while (!Thread.currentThread().isInterrupted()) {
+                  final int length = inStream.read(buffer);
+                  if (length < 0) {
+                    break;
+                  }
+
+                  fileOutStream.write(buffer, 0, length);
+                  digest.update(buffer, 0, length);
+
+                  downloadByteCounter += length;
+
+                  if (showProgress) {
+                    lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
+                  }
+                }
+                fileOutStream.flush();
+              }
+            } catch (IOException ex) {
+              log.error(format("Can't download %s into %s: %s", url, targetFile, ex.getMessage()));
+              if (Files.exists(targetFile)) {
+                log.debug(format("Deleting file %s", targetFile));
+                try {
+                  Files.delete(targetFile);
+                } catch (IOException exx) {
+                  log.error(format("Can't delete file %s: %s", targetFile, exx.getMessage()));
+                }
+              }
+              throw new IORuntimeWrapperException(ex);
+            } finally {
+              if (showProgress) {
+                System.out.println();
+              }
             }
-          }
-          throw new IORuntimeWrapperException(ex);
-        } finally {
-          if (showProgress) {
-            System.out.println();
-          }
-        }
-      }, connectionRequestTimeout, true, acceptedContent);
+          }, connectionRequestTimeout, true, acceptedContent);
     } catch (IORuntimeWrapperException ex) {
       throw ex.getWrapped();
     }

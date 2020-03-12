@@ -137,13 +137,15 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       final AtomicReference<String> text = new AtomicReference<>();
 
       try {
-        doGetRequest(httpClient, this.tuneRequestBase(authorization), adoptApiUri, this.mojo.getProxy(), x -> {
-          try {
-            text.set(EntityUtils.toString(x));
-          } catch (IOException ex) {
-            throw new IORuntimeWrapperException(ex);
-          }
-        }, this.mojo.getConnectionTimeout(), false, "application/json");
+        doGetRequest(httpClient, this.tuneRequestBase(authorization), adoptApiUri, this.mojo.getProxy(),
+            x -> this.logRateLimitIfPresented(adoptApiUri, x),
+            x -> {
+              try {
+                text.set(EntityUtils.toString(x));
+              } catch (IOException ex) {
+                throw new IORuntimeWrapperException(ex);
+              }
+            }, this.mojo.getConnectionTimeout(), false, "application/json");
       } catch (IORuntimeWrapperException ex) {
         throw ex.getWrapped();
       }
@@ -220,7 +222,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       final MessageDigest digest = DigestUtils.getSha256Digest();
 
       doHttpGetIntoFile(client, this.tuneRequestBase(authorization), binary.link, archiveFile, digest, this.mojo.getConnectionTimeout());
-      
+
       final String calculatedStreamDigest = Hex.encodeHexString(digest.digest());
 
       log.info("Archive has been loaded successfuly, calculated SHA256 digest is " + calculatedStreamDigest);
