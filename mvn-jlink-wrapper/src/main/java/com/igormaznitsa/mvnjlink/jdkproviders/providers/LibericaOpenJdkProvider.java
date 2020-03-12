@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.Header;
@@ -71,7 +72,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "type", "version", "arch");
@@ -106,7 +107,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> releases = Collections.emptyList();
@@ -115,7 +116,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
 
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
 
@@ -137,7 +138,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
         final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
         result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
+            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
         );
       }
     }
@@ -146,6 +147,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
+      @Nullable final String authorization,
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
@@ -165,7 +167,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime);
+      final Header[] responseHeaders = this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime);
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 

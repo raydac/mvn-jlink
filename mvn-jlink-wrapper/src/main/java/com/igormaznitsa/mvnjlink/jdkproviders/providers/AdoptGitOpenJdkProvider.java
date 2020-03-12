@@ -16,6 +16,19 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
+import static java.nio.file.Files.delete;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
+import static java.util.Locale.ENGLISH;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Stream.of;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
+
+
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
@@ -24,15 +37,6 @@ import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.http.Header;
-import org.apache.http.client.HttpClient;
-import org.apache.maven.plugin.logging.Log;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -44,16 +48,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
-import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
-import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
-import static java.nio.file.Files.*;
-import static java.util.Locale.ENGLISH;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Stream.of;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
+import org.apache.http.client.HttpClient;
+import org.apache.maven.plugin.logging.Log;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Provider of prebuilt Adopt OpenJDK archives <a href="https://github.com/AdoptOpenJDK">in Git repository</a>
@@ -69,7 +72,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "repositoryName", "version", "arch", "type", "impl", "releaseDate");
@@ -112,7 +115,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> releases = Collections.emptyList();
@@ -123,7 +126,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
         final String pageUrl = String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=100&page=" + page;
         log.debug("Page url: " + pageUrl);
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, pageUrl
+        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl
             , this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkVersion, jdkType, jdkArch, jdkOs, jdkImpl, releaseDate);
@@ -146,7 +149,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
         final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
         result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
+            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
         );
       }
     }
@@ -155,6 +158,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
+      @Nullable final String authorization,
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
@@ -174,7 +178,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[] responseHeaders = this.doHttpGetIntoFile(client, release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime);
+      final Header[] responseHeaders = this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime);
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 

@@ -5,7 +5,7 @@
 
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink</artifactId>
-  <version>1.0.7</version>
+  <version>1.0.8-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Maven Jlink plugin</name>
@@ -57,7 +57,7 @@
   </prerequisites>
 
   <properties>
-      <mvnjlink.test.version>1.0.7</mvnjlink.test.version>
+    <mvnjlink.test.version>1.0.8-SNAPSHOT</mvnjlink.test.version>
     <meta.version>1.1.3</meta.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>

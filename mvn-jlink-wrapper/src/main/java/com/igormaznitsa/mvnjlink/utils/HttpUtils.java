@@ -13,10 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.igormaznitsa.mvnjlink.utils;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
+
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -31,6 +49,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.routing.HttpRoute;
@@ -39,6 +58,7 @@ import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -46,23 +66,6 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.protocol.HttpContext;
 import org.apache.maven.plugin.logging.Log;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.function.Consumer;
-
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Stream.of;
-import org.apache.http.entity.ContentType;
 
 public final class HttpUtils {
 
@@ -75,26 +78,30 @@ public final class HttpUtils {
   @Nonnull
   @MustNotContainNull
   public static Header[] doGetRequest(
-          @Nonnull final HttpClient client,
-          @Nonnull final String urlLink,
-          @Nullable final ProxySettings proxySettings,
-          @Nonnull final Consumer<HttpEntity> consumer,
-          final int timeout,
-          final boolean allowOctetStream,
-          @Nonnull @MustNotContainNull String... acceptedContent
+      @Nonnull final HttpClient client,
+      @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
+      @Nonnull final String urlLink,
+      @Nullable final ProxySettings proxySettings,
+      @Nonnull final Consumer<HttpEntity> consumer,
+      final int timeout,
+      final boolean allowOctetStream,
+      @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
 
     final RequestConfig.Builder config = RequestConfig
-            .custom()
-            .setSocketTimeout(timeout)
-            .setConnectTimeout(timeout);
+        .custom()
+        .setSocketTimeout(timeout)
+        .setConnectTimeout(timeout);
 
     if (proxySettings != null) {
       final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);
       config.setProxy(proxyHost);
     }
 
-    final HttpGet methodGet = new HttpGet(urlLink);
+    HttpRequestBase methodGet = new HttpGet(urlLink);
+    if (customizer != null) {
+      methodGet = customizer.apply(methodGet);
+    }
 
     if (allowOctetStream) {
       if (Arrays.stream(acceptedContent).noneMatch(x -> x.trim().equalsIgnoreCase(MIME_OCTET_STREAM))) {
@@ -155,7 +162,12 @@ public final class HttpUtils {
   }
 
   @Nonnull
-  public static HttpClient makeHttpClient(@Nonnull Log logger, @Nullable final ProxySettings proxy, final boolean disableSslCheck) throws IOException {
+  public static HttpClient makeHttpClient(
+      @Nonnull Log logger,
+      @Nullable final ProxySettings proxy,
+      @Nullable final Function<HttpClientBuilder, HttpClientBuilder> tuner,
+      final boolean disableSslCheck
+  ) throws IOException {
     final HttpClientBuilder builder = HttpClients.custom();
 
     builder.disableCookieManagement();
@@ -164,7 +176,7 @@ public final class HttpUtils {
       if (proxy.hasCredentials()) {
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(new AuthScope(proxy.host, proxy.port),
-                new NTCredentials(GetUtils.ensureNonNull(proxy.username, ""), proxy.password, extractComputerName(), extractDomainName()));
+            new NTCredentials(GetUtils.ensureNonNull(proxy.username, ""), proxy.password, extractComputerName(), extractDomainName()));
         builder.setDefaultCredentialsProvider(credentialsProvider);
         logger.debug(String.format("Credentials provider has been created for proxy (username : %s): %s", proxy.username, proxy.toString()));
       }
@@ -232,12 +244,12 @@ public final class HttpUtils {
             // do nothing
           }
         };
-        sslcontext.init(null, new TrustManager[]{tm}, null);
+        sslcontext.init(null, new TrustManager[] {tm}, null);
 
         final SSLConnectionSocketFactory sslfactory = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
         final Registry<ConnectionSocketFactory> r = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register("https", sslfactory)
-                .register("http", new PlainConnectionSocketFactory()).build();
+            .register("https", sslfactory)
+            .register("http", new PlainConnectionSocketFactory()).build();
 
         builder.setConnectionManager(new BasicHttpClientConnectionManager(r));
         builder.setSSLSocketFactory(sslfactory);
@@ -248,7 +260,8 @@ public final class HttpUtils {
         throw new IOException("Can't disable SSL certificate check", ex);
       }
     }
-    return builder.build();
+
+    return tuner == null ? builder.build() : tuner.apply(builder).build();
   }
 
 }

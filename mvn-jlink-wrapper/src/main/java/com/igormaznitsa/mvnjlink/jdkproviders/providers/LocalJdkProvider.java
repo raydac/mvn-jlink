@@ -16,17 +16,18 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+
+
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
-import org.apache.maven.plugin.logging.Log;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-
-import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.maven.plugin.logging.Log;
 
 /**
  * Provider for locally presented JDK.
@@ -43,7 +44,7 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     final String toolPath = this.mojo.findJdkTool("javac");

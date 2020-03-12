@@ -85,6 +85,14 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   private boolean skip;
 
   /**
+   * Text to be used in authorization field during HTTP requests.
+   *
+   * @since 1.0.8
+   */
+  @Parameter(name = "authorization")
+  private String authorization;
+
+  /**
    * Disable SSL check during network operations.
    * Can be overriden by 'mvn.jlink.disable.ssl.check'
    */
@@ -180,6 +188,11 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
             Boolean.toString(this.disableSSLcheck)));
   }
 
+  @Nullable
+  public String getAuthorization() {
+    return this.findProperty("mvn.jlink.authorization", this.authorization);
+  }
+
   public boolean isSkip() {
     return Boolean.parseBoolean(this.findProperty("mvn.jlink.skip", Boolean.toString(this.skip)));
   }
@@ -235,7 +248,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
   @Nonnull
   protected Path getSourceJdkFolderFromProvider() throws MojoExecutionException, MojoFailureException {
     try {
-      return this.getProvider().makeInstance(this).getPathToJdk(this.getProviderConfig());
+      return this.getProvider().makeInstance(this).getPathToJdk(this.getAuthorization(), this.getProviderConfig());
     } catch (IOException ex) {
       throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
     } catch (FailureException ex) {

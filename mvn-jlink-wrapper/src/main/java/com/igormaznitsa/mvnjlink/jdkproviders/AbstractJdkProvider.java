@@ -13,37 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.igormaznitsa.mvnjlink.jdkproviders;
+
+import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
+import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
+import static java.lang.String.format;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.newOutputStream;
+import static java.util.stream.Stream.of;
+import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
+
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.http.Header;
-import org.apache.http.client.HttpClient;
-import org.apache.http.util.EntityUtils;
-import org.apache.maven.plugin.logging.Log;
-
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
-import static java.lang.String.format;
-import java.nio.file.Files;
-import static java.nio.file.Files.*;
-import static java.util.stream.Stream.of;
-import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.http.Header;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.apache.maven.plugin.logging.Log;
 
 public abstract class AbstractJdkProvider {
 
@@ -51,6 +58,16 @@ public abstract class AbstractJdkProvider {
 
   public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
+  }
+
+  @Nonnull
+  protected Function<HttpRequestBase, HttpRequestBase> tuneRequestBase(@Nullable final String authorization) {
+    return x -> x;
+  }
+
+  @Nullable
+  protected Function<HttpClientBuilder, HttpClientBuilder> tuneClient(@Nullable final String authorization) {
+    return x -> x;
   }
 
   protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
@@ -125,13 +142,14 @@ public abstract class AbstractJdkProvider {
 
   @Nonnull
   protected String doHttpGetText(
-          @Nonnull final HttpClient client,
-          @Nonnull final String url,
-          final int connectionRequestTimeout,
-          @Nonnull @MustNotContainNull String... acceptedContent
+      @Nonnull final HttpClient client,
+      @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
+      @Nonnull final String url,
+      final int connectionRequestTimeout,
+      @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
     final AtomicReference<String> result = new AtomicReference<>();
-    doGetRequest(client, url, this.mojo.getProxy(), x -> {
+    doGetRequest(client, customizer, url, this.mojo.getProxy(), x -> {
       try {
         result.set(EntityUtils.toString(x));
       } catch (IOException ex) {
@@ -144,24 +162,25 @@ public abstract class AbstractJdkProvider {
   /**
    * Download content file through GET request and calculate its SHA256 hash
    *
-   * @param client http client
-   * @param url url of the content file
-   * @param targetFile target file to save the content
-   * @param digest calculator of needed digest
+   * @param client                   http client
+   * @param url                      url of the content file
+   * @param targetFile               target file to save the content
+   * @param digest                   calculator of needed digest
    * @param connectionRequestTimeout timeout for connection request
-   * @param acceptedContent mime types of accepted content
+   * @param acceptedContent          mime types of accepted content
    * @return response headers
    * @throws IOException it any transport error
    */
   @MustNotContainNull
   @Nonnull
   protected Header[] doHttpGetIntoFile(
-          @Nonnull final HttpClient client,
-          @Nonnull final String url,
-          @Nonnull final Path targetFile,
-          @Nonnull final MessageDigest digest,
-          final int connectionRequestTimeout,
-          @Nonnull @MustNotContainNull final String... acceptedContent
+      @Nonnull final HttpClient client,
+      @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
+      @Nonnull final String url,
+      @Nonnull final Path targetFile,
+      @Nonnull final MessageDigest digest,
+      final int connectionRequestTimeout,
+      @Nonnull @MustNotContainNull final String... acceptedContent
   ) throws IOException {
     final Log log = this.mojo.getLog();
     log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(), connectionRequestTimeout));
@@ -169,7 +188,7 @@ public abstract class AbstractJdkProvider {
     Header[] responseHeaders;
 
     try {
-      responseHeaders = doGetRequest(client, url, this.mojo.getProxy(), httpEntity -> {
+      responseHeaders = doGetRequest(client, customizer, url, this.mojo.getProxy(), httpEntity -> {
         boolean showProgress = false;
         try {
           try (final OutputStream fileOutStream = newOutputStream(targetFile)) {
@@ -274,7 +293,7 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  public abstract Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException;
+  public abstract Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException;
 
   @FunctionalInterface
   public interface IoLoader {

@@ -16,6 +16,19 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
+import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
+import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
+import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
+import static java.nio.file.Files.delete;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
+import static java.util.Locale.ENGLISH;
+import static java.util.regex.Pattern.compile;
+import static java.util.stream.Collectors.joining;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
+
+
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
@@ -23,19 +36,9 @@ import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
+import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.http.client.HttpClient;
-import org.apache.http.util.EntityUtils;
-import org.apache.maven.plugin.logging.Log;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,17 +52,16 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
-import com.igormaznitsa.mvnjlink.utils.HttpUtils;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
-import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
-import static java.nio.file.Files.*;
-import static java.util.Locale.ENGLISH;
-import static java.util.regex.Pattern.compile;
-import static java.util.stream.Collectors.joining;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.client.HttpClient;
+import org.apache.http.util.EntityUtils;
+import org.apache.maven.plugin.logging.Log;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Provider of prebuilt OpenJDK archives from <a href="https://adoptopenjdk.net/">AdoptOpenJDK</a>
@@ -74,7 +76,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "release", "arch", "type", "impl");
@@ -131,11 +133,11 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       }
 
       log.debug("Adopt list OpenJdk API URL: " + adoptApiUri);
-      final HttpClient httpClient = makeHttpClient(log, this.mojo.getProxy(), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient = makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
       final AtomicReference<String> text = new AtomicReference<>();
 
       try {
-        doGetRequest(httpClient, adoptApiUri, this.mojo.getProxy(), x -> {
+        doGetRequest(httpClient, this.tuneRequestBase(authorization), adoptApiUri, this.mojo.getProxy(), x -> {
           try {
             text.set(EntityUtils.toString(x));
           } catch (IOException ex) {
@@ -165,7 +167,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         log.debug("Found release binary: " + foundReleaseBinary);
 
         result = loadJdkIntoCacheIfNotExist(cacheFolder, cachedJdkFolderName, tempFolder ->
-            downloadAndUnpack(httpClient, foundReleaseBinary, cacheFolder, tempFolder, keepArchiveFile)
+            downloadAndUnpack(httpClient, authorization, foundReleaseBinary, cacheFolder, tempFolder, keepArchiveFile)
         );
       }
     }
@@ -174,6 +176,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
   private void downloadAndUnpack(
       @Nonnull final HttpClient client,
+      @Nullable final String authorization,
       @Nonnull final ReleaseList.Release.Binary binary,
       @Nonnull final Path workFolder,
       @Nonnull final Path destUnpackFolder,
@@ -184,7 +187,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     final String digestCode;
     if (!binary.linkHash.isEmpty()) {
-      digestCode = StringUtils.extractFileHash(doHttpGetText(client, binary.linkHash, this.mojo.getConnectionTimeout(), HttpUtils.MIME_OCTET_STREAM, "text/plain"));
+      digestCode = StringUtils.extractFileHash(doHttpGetText(client, this.tuneRequestBase(authorization), binary.linkHash, this.mojo.getConnectionTimeout(), HttpUtils.MIME_OCTET_STREAM, "text/plain"));
       log.info("Expected archive SHA256 digest: " + digestCode);
     } else {
       log.warn("The Release doesn't have listed hash link");
@@ -215,8 +218,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getSha256Digest();
-      
-      doHttpGetIntoFile(client, binary.link, archiveFile, digest, this.mojo.getConnectionTimeout());
+
+      doHttpGetIntoFile(client, this.tuneRequestBase(authorization), binary.link, archiveFile, digest, this.mojo.getConnectionTimeout());
       
       final String calculatedStreamDigest = Hex.encodeHexString(digest.digest());
 
