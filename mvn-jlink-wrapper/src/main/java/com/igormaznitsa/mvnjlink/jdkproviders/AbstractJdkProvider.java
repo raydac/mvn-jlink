@@ -215,7 +215,7 @@ public abstract class AbstractJdkProvider {
     if (rateLimitRemainingLong < 0L) {
       logger.debug("Rate limit remaining is not provided");
     } else if (rateLimitRemainingLong == 0L) {
-      logger.error(format("Detected zero limit remaining for '%s'! Rate reeset expected at '%s'", resourceUrl, rateLimitResetDate));
+      logger.error(format("Detected zero limit remaining for '%s'! Rate reset expected at '%s'", resourceUrl, rateLimitResetDate));
     } else if (rateLimitRemainingLong < 5L) {
       logger.warn(format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
     } else {
