@@ -63,15 +63,16 @@ public abstract class AbstractJdkProvider {
     this.mojo = assertNotNull(mojo);
   }
 
-  private static String hideSensitiveText(final String text) {
-    return text.charAt(0) + "********" + text.charAt(text.length() - 1);
+  @Nonnull
+  private static String hideSensitiveText(@Nonnull final String text) {
+    return text.charAt(0) + "_____" + text.charAt(text.length() - 1);
   }
 
   @Nonnull
   protected Function<HttpRequestBase, HttpRequestBase> tuneRequestBase(@Nullable final String authorization) {
     return x -> {
       if (authorization != null && !authorization.isEmpty()) {
-        mojo.getLog().debug("Providing authorization: " + hideSensitiveText(authorization));
+        mojo.getLog().info("Providing authorization header: " + hideSensitiveText(authorization));
         x.setHeader(HttpHeaders.AUTHORIZATION, authorization);
       }
       return x;
