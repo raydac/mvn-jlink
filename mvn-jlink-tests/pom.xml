@@ -21,7 +21,8 @@
         <module>mvn-jlink-test-adoptgit-jdk8</module>
         <module>mvn-jlink-test-adoptgit-jdk13</module>
         <module>mvn-jlink-test-adoptgit-jdk15</module>
-        <module>mvn-jlink-test-liberica</module>
+        <module>mvn-jlink-test-liberica-jdk13</module>
+        <module>mvn-jlink-test-liberica-jdk14</module>
         <module>mvn-jlink-test-sapmachine</module>
         <module>mvn-jlink-test-graalvmce</module>
     </modules>

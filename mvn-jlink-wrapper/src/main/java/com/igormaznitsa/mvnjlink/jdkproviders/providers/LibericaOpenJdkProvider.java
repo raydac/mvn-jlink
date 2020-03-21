@@ -255,10 +255,10 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
               try {
                 this.releases.add(new Release(fileName, link, mime, size));
               } catch (IllegalArgumentException ex) {
-                log.warn("Detected non-standard named archive: " + fileName);
+                log.debug("Detected non-standard named archive: " + fileName);
               }
             } else {
-              log.debug("Ignoring because non-unpackable file: " + asset);
+              log.debug("Ignoring because unknown package type: " + asset);
             }
           }
         }
