@@ -47,6 +47,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -62,9 +63,19 @@ public abstract class AbstractJdkProvider {
     this.mojo = assertNotNull(mojo);
   }
 
+  private static String hideSensitiveText(final String text) {
+    return text.charAt(0) + "********" + text.charAt(text.length() - 1);
+  }
+
   @Nonnull
   protected Function<HttpRequestBase, HttpRequestBase> tuneRequestBase(@Nullable final String authorization) {
-    return x -> x;
+    return x -> {
+      if (authorization != null && !authorization.isEmpty()) {
+        mojo.getLog().debug("Providing authorization: " + hideSensitiveText(authorization));
+        x.setHeader(HttpHeaders.AUTHORIZATION, authorization);
+      }
+      return x;
+    };
   }
 
   @Nullable
