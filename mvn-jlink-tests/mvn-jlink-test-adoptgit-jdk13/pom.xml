@@ -25,11 +25,23 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-adoptgit</artifactId>
+    <artifactId>mvn-jlink-test-adoptgit13</artifactId>
     <packaging>jar</packaging>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <verbose>true</verbose>
+                    <executable>${jlink.javac.path}</executable>
+                    <fork>true</fork>
+                    <source>13</source>
+                    <target>13</target>
+                    <compilerArgument>--enable-preview</compilerArgument>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -51,7 +63,7 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-13</id>
+                        <id>do-cache-jdk</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
@@ -68,6 +80,9 @@
                             <disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
+                            <pathAsProperty>
+                                <jlink.javac.path>/**/javac${exe.extension}</jlink.javac.path>
+                            </pathAsProperty>
                         </configuration>
                     </execution>
                     <execution>
@@ -109,7 +124,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M2</version>
                 <executions>
                     <execution>
                         <id>check-folder-exist</id>

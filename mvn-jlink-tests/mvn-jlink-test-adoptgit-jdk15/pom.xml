@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2019 Igor Maznitsa.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.igormaznitsa</groupId>
+        <artifactId>mvn-jlink-tests</artifactId>
+        <version>0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mvn-jlink-test-adoptgit15</artifactId>
+    <packaging>jar</packaging>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <verbose>true</verbose>
+                    <executable>${jlink.javac.path}</executable>
+                    <fork>true</fork>
+                    <source>15</source>
+                    <target>15</target>
+                    <compilerArgument>--enable-preview</compilerArgument>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>force-clean-target</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <directory>${project.build.directory}</directory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.igormaznitsa</groupId>
+                <artifactId>mvn-jlink-wrapper</artifactId>
+                <executions>
+                    <execution>
+                        <id>do-cache-jdk</id>
+                        <goals>
+                            <goal>cache-jdk</goal>
+                        </goals>
+                        <configuration>
+                            <provider>ADOPTGIT</provider>
+                            <providerConfig>
+                                <repositoryName>openjdk15-binaries</repositoryName>
+                                <arch>x64</arch>
+                                <type>jdk</type>
+                                <impl>hotspot</impl>
+                                <releaseDate>2020-03-21-03-31</releaseDate>
+                            </providerConfig>
+                            <disableSSLcheck>true</disableSSLcheck>
+                            <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
+                            <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
+                            <pathAsProperty>
+                                <jlink.javac.path>/**/javac${exe.extension}</jlink.javac.path>
+                            </pathAsProperty>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>call-jdeps</id>
+                        <goals>
+                            <goal>jdeps</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.directory}${file.separator}jdeps.out</output>
+                            <toolJdk>${jlink.jdk.path}</toolJdk>
+                            <options>
+                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar
+                                </option>
+                            </options>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>call-jlink</id>
+                        <goals>
+                            <goal>jlink</goal>
+                        </goals>
+                        <configuration>
+                            <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
+                            <output>${project.build.directory}${file.separator}preparedJDK</output>
+                            <disableSSLcheck>true</disableSSLcheck>
+                            <toolJdk>${jlink.jdk.path}</toolJdk>
+                            <addModules>
+                                <module>java.compiler</module>
+                            </addModules>
+                            <options>
+                                <option>--compress=2</option>
+                                <option>--no-header-files</option>
+                                <option>--no-man-pages</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>check-folder-exist</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.build.directory}${file.separator}preparedJDK</file>
+                                    </files>
+                                </requireFilesExist>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

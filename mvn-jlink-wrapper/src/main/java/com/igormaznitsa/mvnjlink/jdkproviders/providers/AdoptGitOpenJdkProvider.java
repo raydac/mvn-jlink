@@ -75,14 +75,14 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
   public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertParameters(config, "repositoryName", "version", "arch", "type", "impl", "releaseDate");
+    assertParameters(config, "repositoryName", "arch", "type", "impl", "releaseDate");
 
     final String defaultOs = findCurrentOs("macos");
 
     log.debug("Default OS recognized as: " + defaultOs);
 
     final String gitRepositoryName = config.get("repositoryName");
-    final String jdkVersion = config.get("version");
+    final String jdkVersion = config.getOrDefault("version", "");
     final String releaseDate = config.get("releaseDate");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
@@ -126,8 +126,8 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
         final String pageUrl = String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=100&page=" + page;
         log.debug("Page url: " + pageUrl);
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl
-            , this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl,
+            this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkVersion, jdkType, jdkArch, jdkOs, jdkImpl, releaseDate);
 
@@ -267,10 +267,10 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
                 this.releases.add(newRelease);
                 log.debug("Added found release: " + newRelease);
               } catch (IllegalArgumentException ex) {
-                log.warn("Ignoring non-standard file name: " + fileName);
+                log.debug("Ignoring for non-standard package name: " + fileName);
               }
             } else {
-              log.debug("Ignoring because non-unpackable file: " + asset);
+              log.debug("Ignoring because becuae non-archive: " + asset);
             }
           }
         }
@@ -306,7 +306,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
     private static class Release {
 
-      private static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile("^OpenJDK([\\da-z]+)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z_]+)_([0-9\\-]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      private static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile("^OpenJDK([\\da-z]*)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z_]+)_([\\-a-zA-Z0-9]+).(.+)$", Pattern.CASE_INSENSITIVE);
 
       private final String version;
       private final String type;

@@ -68,7 +68,7 @@ import org.json.JSONObject;
  */
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
-  private static final String BASEURL_OPENJDK_RELEASES = "https://api.adoptopenjdk.net/v2/info/releases/";
+  private static final String BASEURL_OPENJDK_RELEASES = "https://api.adoptopenjdk.net/v3/info/available_releases/";
 
   public AdoptOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
