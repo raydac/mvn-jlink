@@ -42,10 +42,9 @@
                         <configuration>
                             <provider>ADOPT</provider>
                             <providerConfig>
-                                <release>jdk-13*</release>
+                                <release>13</release>
                                 <arch>x64</arch>
-                                <type>jdk</type>
-                                <impl>hotspot</impl>
+                                <impl>openj9</impl>
                             </providerConfig>
                             <disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>

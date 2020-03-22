@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.SystemUtils;
@@ -56,6 +57,8 @@ import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
 
 public abstract class AbstractJdkProvider {
+
+  protected static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   protected final AbstractJdkToolMojo mojo;
 

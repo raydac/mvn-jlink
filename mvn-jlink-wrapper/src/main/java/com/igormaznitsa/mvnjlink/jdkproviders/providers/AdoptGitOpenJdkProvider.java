@@ -64,7 +64,6 @@ import org.json.JSONObject;
 public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
   private static final String RELEASES_LIST_TEMPLATE = "https://api.github.com/repos/AdoptOpenJDK/%s/releases";
-  private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   public AdoptGitOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);

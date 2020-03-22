@@ -17,61 +17,56 @@
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.doGetRequest;
-import static com.igormaznitsa.mvnjlink.utils.HttpUtils.makeHttpClient;
 import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.isDirectory;
-import static java.nio.file.Files.isRegularFile;
 import static java.util.Locale.ENGLISH;
-import static java.util.regex.Pattern.compile;
-import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 
-import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
-import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
-import com.igormaznitsa.mvnjlink.utils.StringUtils;
-import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Optional;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
-import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Provider of prebuilt OpenJDK archives from <a href="https://adoptopenjdk.net/">AdoptOpenJDK</a>
  */
 public class AdoptOpenJdkProvider extends AbstractJdkProvider {
-  private static final Pattern RELEASE = compile("^([a-z]+)-?([0-9.]+)(.*)$");
-  private static final String BASEURL_OPENJDK_RELEASES = "https://api.adoptopenjdk.net/v3/info/available_releases/";
+  private static final String BASEURL = "https://api.adoptopenjdk.net/v3";
 
   public AdoptOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
+  }
+
+  @Nonnull
+  private static String toUrl(@Nonnull final String str) {
+    try {
+      return URLEncoder.encode(str, "UTF-8");
+    } catch (UnsupportedEncodingException ex) {
+      throw new Error(ex);
+    }
   }
 
   @Nonnull
@@ -79,33 +74,43 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
   public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertParameters(config, "release", "arch", "type", "impl");
+    assertParameters(config, "release", "arch");
 
     final String defaultOs = findCurrentOs("mac");
 
     log.debug("Default OS recognized as: " + defaultOs);
 
     final String jdkRelease = config.get("release");
-    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final String jdkType = config.get("type");
-    final String jdkImpl = config.get("impl");
-    final String jdkReleaseListUrl = config.get("releaseListUrl");
+    final String jdkImpl = config.getOrDefault("impl", "hotspot");
+    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
+    final String jdkImageType = config.getOrDefault("type", "jdk");
+    final String jdkReleaseType = config.getOrDefault("releaseType", "ga");
+    final String jdkHeapSize = config.getOrDefault("heapSize", "normal");
+    final String jdkVendor = config.getOrDefault("vendor", "adoptopenjdk");
+    final String jdkProject = config.getOrDefault("project", "");
+
     final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final String cachedJdkFolderName = String.format(
-        "ADOPT_%s_%s_%s_%s",
+        "ADOPT_%s_%s_%s_%s_%s_%s_%s_%s_%s",
         escapeFileName(jdkRelease.toLowerCase(ENGLISH).trim()),
         escapeFileName(jdkOs.toLowerCase(ENGLISH).trim()),
         escapeFileName(jdkArch.toLowerCase(ENGLISH).trim()),
-        escapeFileName(jdkImpl.toLowerCase(ENGLISH).trim())
+        escapeFileName(jdkImpl.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkImageType.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkReleaseType.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkHeapSize.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkVendor.toLowerCase(ENGLISH).trim()),
+        escapeFileName(jdkProject.toLowerCase(ENGLISH).trim())
     );
 
     log.info("looking for '" + cachedJdkFolderName + "' in the cache folder");
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
     final Path cachedJdkPath = cacheFolder.resolve(cachedJdkFolderName);
-    final Path result;
+
+    Path result;
 
     if (isDirectory(cachedJdkPath)) {
       log.info("Found cached JDK: " + cachedJdkFolderName);
@@ -117,127 +122,193 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         log.info("Can't find cached JDK: " + cachedJdkFolderName);
       }
 
-      final String adoptApiUri;
-      if (jdkReleaseListUrl == null) {
-        final Matcher matcher = RELEASE.matcher(jdkRelease.trim().toLowerCase(ENGLISH));
-        if (matcher.find()) {
-          final String jdkVersion = matcher.group(2);
-          final int dotIndex = jdkVersion.indexOf('.');
-          log.debug("Extracted JDK version " + jdkVersion + " from " + jdkRelease);
-          adoptApiUri = BASEURL_OPENJDK_RELEASES + "openjdk" + (dotIndex < 0 ? jdkVersion : jdkVersion.substring(0, dotIndex));
-        } else {
-          throw new IOException("Can't parse 'release' attribute, may be incorrect format: " + jdkRelease);
-        }
-      } else {
-        adoptApiUri = jdkReleaseListUrl;
-      }
-
-      log.debug("Adopt list OpenJdk API URL: " + adoptApiUri);
-      final HttpClient httpClient = makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
-      final AtomicReference<String> text = new AtomicReference<>();
-
       try {
-        doGetRequest(httpClient, this.tuneRequestBase(authorization), adoptApiUri, this.mojo.getProxy(),
-            x -> this.logRateLimitIfPresented(adoptApiUri, x),
-            x -> {
-              try {
-                text.set(EntityUtils.toString(x));
-              } catch (IOException ex) {
-                throw new IORuntimeWrapperException(ex);
-              }
-            }, this.mojo.getConnectionTimeout(), false, "application/json");
-      } catch (IORuntimeWrapperException ex) {
-        throw ex.getWrapped();
-      }
-
-      final JSONArray jsonReleaseArray;
-      try {
-        jsonReleaseArray = new JSONArray(text.get());
-      } catch (JSONException ex) {
-        log.error(text.get());
-        throw new IOException("Can't parse JSON file for list of releases", ex);
-      }
-
-      final ReleaseList releaseList = new ReleaseList(jsonReleaseArray);
-      final ReleaseList.Release.Binary foundReleaseBinary = releaseList.findBinary(jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl);
-
-      if (foundReleaseBinary == null) {
-        log.error(String.format("Can't find appropriate JDK binary, check list of allowed releases : %s [os='%s',arch='%s',type='%s',impl='%s']", jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
-        log.error(releaseList.makeListOfAllReleases());
-        throw new IOException(String.format("Can't find appropriate JDK binary: %s [os='%s',arch='%s',type='%s',impl='%s']", jdkRelease, jdkOs, jdkArch, jdkType, jdkImpl));
-      } else {
-        log.debug("Found release binary: " + foundReleaseBinary);
-
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, cachedJdkFolderName, tempFolder ->
-            downloadAndUnpack(httpClient, authorization, foundReleaseBinary, cacheFolder, tempFolder, keepArchiveFile)
+        Integer.parseInt(jdkRelease);
+        result = loadFeaturedVersion(
+            authorization,
+            cacheFolder,
+            cachedJdkPath,
+            jdkRelease,
+            jdkReleaseType,
+            jdkOs,
+            jdkArch,
+            jdkImageType,
+            jdkImpl,
+            jdkHeapSize,
+            jdkVendor,
+            jdkProject,
+            keepArchiveFile);
+      } catch (NumberFormatException ex) {
+        result = loadReleaseVersion(
+            authorization,
+            cacheFolder,
+            cachedJdkPath,
+            jdkRelease,
+            jdkOs,
+            jdkArch,
+            jdkImageType,
+            jdkImpl,
+            jdkHeapSize,
+            jdkVendor,
+            jdkProject,
+            keepArchiveFile
         );
       }
     }
+
     return result;
   }
 
+  @Nonnull
+  private Path loadFeaturedVersion(
+      @Nullable final String authorization,
+      @Nonnull final Path workFolder,
+      @Nonnull final Path unpackFolder,
+      @Nonnull final String version,
+      @Nonnull final String releaseType,
+      @Nonnull final String os,
+      @Nonnull final String arch,
+      @Nonnull final String imageType,
+      @Nonnull final String jvmImpl,
+      @Nonnull final String heapSize,
+      @Nonnull final String vendor,
+      @Nullable final String project,
+      final boolean keepArchive
+  ) throws IOException {
+
+    this.mojo.getLog().debug("Loading featured version");
+
+    String url = "/binary/latest"
+        + '/' + toUrl(version)
+        + '/' + toUrl(releaseType)
+        + '/' + toUrl(os)
+        + '/' + toUrl(arch)
+        + '/' + toUrl(imageType)
+        + '/' + toUrl(jvmImpl)
+        + '/' + toUrl(heapSize)
+        + '/' + toUrl(vendor);
+
+    if (project != null && !project.isEmpty()) {
+      url += "?project=" + toUrl(project);
+    }
+
+    final HttpClient httpClient = HttpUtils.makeHttpClient(
+        this.mojo.getLog(),
+        this.mojo.getProxy(),
+        this.tuneClient(authorization),
+        this.mojo.isDisableSSLcheck());
+
+    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder, keepArchive);
+    return unpackFolder;
+  }
+
+  @Nonnull
+  private Path loadReleaseVersion(
+      @Nullable final String authorization,
+      @Nonnull final Path workFolder,
+      @Nonnull final Path unpackFolder,
+      @Nonnull final String releaseName,
+      @Nonnull final String os,
+      @Nonnull final String arch,
+      @Nonnull final String imageType,
+      @Nonnull final String jvmImpl,
+      @Nonnull final String heapSize,
+      @Nonnull final String vendor,
+      @Nullable final String project,
+      final boolean keepArchive) throws IOException {
+
+    this.mojo.getLog().debug("Loading release version");
+
+    String url = "/binary/version"
+        + '/' + toUrl(releaseName)
+        + '/' + toUrl(os)
+        + '/' + toUrl(arch)
+        + '/' + toUrl(imageType)
+        + '/' + toUrl(jvmImpl)
+        + '/' + toUrl(heapSize)
+        + '/' + toUrl(vendor);
+
+    if (project != null && !project.isEmpty()) {
+      url += "?project=" + toUrl(project);
+    }
+
+    final HttpClient httpClient = HttpUtils.makeHttpClient(
+        this.mojo.getLog(),
+        this.mojo.getProxy(),
+        this.tuneClient(authorization),
+        this.mojo.isDisableSSLcheck());
+
+    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder, keepArchive);
+    return unpackFolder;
+  }
+
   private void downloadAndUnpack(
+      @Nonnull final String url,
       @Nonnull final HttpClient client,
       @Nullable final String authorization,
-      @Nonnull final ReleaseList.Release.Binary binary,
-      @Nonnull final Path workFolder,
+      @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       final boolean keepArchiveFile
   ) throws IOException {
 
     final Log log = this.mojo.getLog();
 
-    final String digestCode;
-    if (!binary.linkHash.isEmpty()) {
-      digestCode = StringUtils.extractFileHash(doHttpGetText(client, this.tuneRequestBase(authorization), binary.linkHash, this.mojo.getConnectionTimeout(), HttpUtils.MIME_OCTET_STREAM, "text/plain"));
-      log.info("Expected archive SHA256 digest: " + digestCode);
+    log.debug("Formed API uri is " + url);
+
+    Path pathToArchiveFile = tempFolder.resolve("." + destUnpackFolder.getFileName().toString() + ".arch");
+    if (Files.isRegularFile(pathToArchiveFile, LinkOption.NOFOLLOW_LINKS) && !Files.deleteIfExists(pathToArchiveFile)) {
+      throw new IOException("Can't delete archive: " + pathToArchiveFile);
+    }
+
+    final MessageDigest digest = DigestUtils.getMd5Digest();
+    final Header[] responseHeaders = this.doHttpGetIntoFile(
+        client,
+        this.tuneRequestBase(authorization),
+        url,
+        pathToArchiveFile,
+        digest,
+        this.mojo.getConnectionTimeout(),
+        "application/zip",
+        "application/octet-stream",
+        "application/x-zip-compressed",
+        "multipart/x-zip",
+        "application/x-gzip",
+        "application/x-tar+gzip"
+    );
+
+    log.debug("Response headers: " + Arrays.toString(responseHeaders));
+
+    final Optional<Header> originalFileName = of(responseHeaders).filter(x -> "Content-Disposition".equalsIgnoreCase(x.getName())).findFirst();
+
+    if (originalFileName.isPresent()) {
+      Path newArch = pathToArchiveFile.resolveSibling(originalFileName.get().getValue());
+      log.debug("Renaming " + pathToArchiveFile + " -> " + newArch);
+      pathToArchiveFile = Files.move(pathToArchiveFile, newArch);
     } else {
-      log.warn("The Release doesn't have listed hash link");
-      digestCode = "";
+      throw new IOException("Can't find Content-Disposition among headers in response");
     }
 
-    final Path archiveFile = workFolder.resolve(binary.binaryName);
 
-    boolean doLoadArchive = true;
+    final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
 
-    if (isRegularFile(archiveFile)) {
-      log.info("Detected archive: " + archiveFile.getFileName());
+    log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
 
-      if (digestCode.isEmpty()) {
-        log.warn("Because digest is undefined, archive will be deleted!");
+    final Optional<Header> etag = of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
 
-        if (!Files.deleteIfExists(archiveFile)) {
-          throw new IOException("Detected archive '" + archiveFile.getFileName() + "', which can't be deleted");
-        }
-      } else if (!digestCode.equalsIgnoreCase(calcSha256ForFile(archiveFile))) {
-        log.warn("Calculated digest for found archive is wrong, the archive will be reloaded!");
-        delete(archiveFile);
-      } else {
-        log.info("Found archive hash is OK");
-        doLoadArchive = false;
-      }
-    }
-
-    if (doLoadArchive) {
-      final MessageDigest digest = DigestUtils.getSha256Digest();
-
-      doHttpGetIntoFile(client, this.tuneRequestBase(authorization), binary.link, archiveFile, digest, this.mojo.getConnectionTimeout());
-
-      final String calculatedStreamDigest = Hex.encodeHexString(digest.digest());
-
-      log.info("Archive has been loaded successfuly, calculated SHA256 digest is " + calculatedStreamDigest);
-
-      if (digestCode.isEmpty()) {
-        log.warn("Don't check hash because etalon hash is not provided by host");
-      } else {
-        if (digestCode.equalsIgnoreCase(calculatedStreamDigest)) {
-          log.info("Calculated digest is equal to the provided digest");
+    if (etag.isPresent()) {
+      final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
+      if (matcher.find()) {
+        final String extractedEtag = matcher.group(1);
+        if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
+          log.info("Calculated MD5 is equal to the ETag in response");
         } else {
-          throw new IOException("Calculated digest is not equal to the provided digest: " + digestCode + " != " + calculatedStreamDigest);
+          log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
         }
+      } else {
+        log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
       }
     } else {
-      log.info("Archive loading is skipped");
+      throw new IOException("ETag is not presented in the response or its value can't be parsed");
     }
 
     if (isDirectory(destUnpackFolder)) {
@@ -245,143 +316,22 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
-    final String rootArchiveFolder = ArchUtils.findShortestDirectory(archiveFile);
-
-    if (rootArchiveFolder == null) {
-      log.error("Can't find root folder in downloaded archive: " + archiveFile);
-    } else {
-      log.info("Detected archive root folder: " + rootArchiveFolder);
-    }
-
+    final String archiveRoorName = ArchUtils.findShortestDirectory(pathToArchiveFile);
+    log.debug("Root archive folder: " + archiveRoorName);
     log.info("Unpacking archive...");
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, archiveFile, destUnpackFolder, rootArchiveFolder);
+    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder, archiveRoorName);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + rootArchiveFolder);
+      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
     }
-    log.debug(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.toString()));
-    log.info(String.format("Unpacked %d files into %s", numberOfUnpackedFiles, destUnpackFolder.getFileName()));
+    log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
 
     if (keepArchiveFile) {
-      log.info("Keep downloaded archive file in cache: " + archiveFile);
+      log.info("Keep downloaded archive file in cache: " + pathToArchiveFile);
     } else {
-      log.info("Deleting archive: " + archiveFile);
-      delete(archiveFile);
+      log.info("Deleting archive: " + pathToArchiveFile);
+      delete(pathToArchiveFile);
     }
   }
 
-  private static final class ReleaseList {
-    private final List<Release> releases = new ArrayList<>();
 
-    private ReleaseList(@Nonnull JSONArray json) {
-      for (int i = 0; i < json.length(); i++) {
-        this.releases.add(new Release(json.getJSONObject(i)));
-      }
-      Collections.sort(this.releases);
-    }
-
-    @Nonnull
-    private String makeListOfAllReleases() {
-      return this.releases.stream().map(Release::toStringList).flatMap(Collection::stream).collect(joining("\n"));
-    }
-
-    @Nullable
-    private Release.Binary findBinary(
-        @Nonnull final String name,
-        @Nullable final String jdkOs,
-        @Nullable final String jdkArch,
-        @Nullable final String jdkType,
-        @Nullable final String jdkImpl
-    ) {
-      final WildCardMatcher wildCardMatcher = new WildCardMatcher(name, true);
-
-      return this.releases.stream().filter(x -> wildCardMatcher.match(x.releaseName)).flatMap(x -> x.binaries.stream())
-          .filter(x -> jdkOs == null || jdkOs.equalsIgnoreCase(x.os))
-          .filter(x -> jdkArch == null || jdkArch.equalsIgnoreCase(x.arch))
-          .filter(x -> jdkType == null || jdkType.equalsIgnoreCase(x.type))
-          .filter(x -> jdkImpl == null || jdkImpl.equalsIgnoreCase(x.impl))
-          .findFirst().orElse(null);
-    }
-
-    private static final class Release implements Comparable<Release> {
-
-      private final String releaseName;
-      private final List<Binary> binaries = new ArrayList<>();
-
-      private Release(@Nonnull JSONObject json) {
-        this.releaseName = json.getString("release_name");
-
-        final JSONArray binariesArray = json.getJSONArray("binaries");
-        for (int i = 0; i < binariesArray.length(); i++) {
-          binaries.add(new Binary(binariesArray.getJSONObject(i)));
-        }
-      }
-
-      @Override
-      public boolean equals(@Nullable final Object obj) {
-        if (!(obj instanceof Release)) {
-          return false;
-        }
-        final Release release = (Release) obj;
-        return Objects.equals(this.releaseName, release.releaseName) &&
-            Objects.equals(this.binaries, release.binaries);
-      }
-
-      @Override
-      public int hashCode() {
-        return Objects.hash(this.releaseName, this.binaries);
-      }
-
-      @Override
-      public int compareTo(@Nonnull final Release release) {
-        return release.releaseName.compareTo(this.releaseName);
-      }
-
-      @Nonnull
-      @Override
-      public String toString() {
-        return this.releaseName;
-      }
-
-      @Nonnull
-      @MustNotContainNull
-      private List<String> toStringList() {
-        final List<String> result = new ArrayList<>();
-        this.binaries.forEach(x -> result.add(this.releaseName + " [" + x.toString() + ']'));
-        return result;
-      }
-
-      private static final class Binary {
-        private final String os;
-        private final String arch;
-        private final String type;
-        private final String impl;
-        private final String binaryName;
-        private final long size;
-        private final String link;
-        private final String linkHash;
-
-        private Binary(@Nonnull final JSONObject json) {
-          try {
-            this.os = json.getString("os");
-            this.arch = json.getString("architecture");
-            this.type = json.getString("binary_type");
-            this.binaryName = json.getString("binary_name");
-            this.impl = json.getString("openjdk_impl");
-            this.size = json.getLong("binary_size");
-            this.link = json.getString("binary_link");
-            this.linkHash = json.has("checksum_link") ? json.getString("checksum_link") : "";
-          } catch (JSONException ex) {
-            throw new FailureException("Can't get expected value: " + json, ex);
-          }
-        }
-
-        @Nonnull
-        @Override
-        public String toString() {
-          return String.format("os='%s',arch='%s',type='%s',impl='%s'", this.os, this.arch, this.type, this.impl);
-        }
-      }
-
-    }
-  }
 }
