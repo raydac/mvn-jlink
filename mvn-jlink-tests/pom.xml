@@ -17,7 +17,8 @@
         <module>mvn-jlink-test-cache</module>
         <module>mvn-jlink-test-local</module>
         <module>mvn-jlink-test-tool</module>
-        <module>mvn-jlink-test-adopt</module>
+        <module>mvn-jlink-test-adopt-jdk13</module>
+        <module>mvn-jlink-test-adopt-jdk14</module>
         <module>mvn-jlink-test-adoptgit-jdk8</module>
         <module>mvn-jlink-test-adoptgit-jdk13</module>
         <module>mvn-jlink-test-adoptgit-jdk15</module>

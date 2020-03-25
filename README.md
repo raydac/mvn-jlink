@@ -9,23 +9,21 @@
 
 # Changelog
 
+__1.1.0 (SNAPSHOT)__
+ - reworked `ADOPT` provider to work through [AdoptOpenJdk API V3](https://api.adoptopenjdk.net/swagger-ui/)
+ - added `authorization` property which will be provided through `Authorization` header
+ - added tests
+ - improved `ADOPTGIT` provider
+ - added logging for detected limit remaining headers
+ 
 __1.0.7 (02-feb-2020)__
  - added support of load JDK from [GraalVM-CE repository](https://github.com/graalvm/graalvm-ce-builds)
 
 __1.0.6 (29-jan-2020)__
  - added support of properties to override some config parameters
  - [#4](https://github.com/raydac/mvn-jlink/issues/4) improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
-
-__1.0.5 (23-dec-2019)__
- - [#3](https://github.com/raydac/mvn-jlink/issues/2) corrected exception processing on parsing of Liberica src package name
-
-__1.0.4 (22-sep-2019)__
- - [#2](https://github.com/raydac/mvn-jlink/issues/2) added provider to load JDK from the [Adopt Git repository](https://github.com/AdoptOpenJDK)
- - [#1](https://github.com/raydac/mvn-jlink/issues/1)__`modulePath` string parameter in `jlink` mojo replaced by `modulePaths` string list parameter. Pseudo-path JDK.PROVIDER.JMODS allows to include path to provider's JDK jmods folder.__
-
-__1.0.3 (31-jul-2019)__
- - improved processing of case if octet stream is presented as content type
- - minor refactoring of file name escaping
+   
+[full changelog](CHANGELOG.txt)
 
 # Introduction
 Since Java 9, JDK has modules (project Jigsaw) and it provides more or less smoothly way to build JDK versions containing only needed modules. Such formed JDK image can be delivered together with Java application. Because I have several Java based OSS projects (like [SciaReto](http://www.igormaznitsa.com/netbeans-mmd-plugin/) and [ZXPoly emulator](https://github.com/raydac/zxpoly)) which would be nicer with provided pre-built JDK image, I decided to automate processing of JDK image build and have developed the maven plug-in (because Maven is the main tool which I use for OSS projects).

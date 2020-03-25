@@ -9,7 +9,7 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-adopt</artifactId>
+    <artifactId>mvn-jlink-test-adopt-jdk13</artifactId>
     <packaging>jar</packaging>
 
     <build>
