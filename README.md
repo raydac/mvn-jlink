@@ -10,6 +10,7 @@
 # Changelog
 
 __1.1.0 (SNAPSHOT)__
+ - improved processing of Gateway Timeout response
  - reworked `ADOPT` provider to work through [AdoptOpenJdk API V3](https://api.adoptopenjdk.net/swagger-ui/)
  - added `authorization` property which will be provided through `Authorization` header
  - added tests

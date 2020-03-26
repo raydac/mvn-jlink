@@ -76,6 +76,28 @@ public final class HttpUtils {
   }
 
   @Nonnull
+  private static HttpRequestBase makeGet(
+      @Nonnull final String urlLink,
+      @Nonnull RequestConfig config,
+      @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
+      @Nonnull @MustNotContainNull String... acceptedContent
+  ) {
+    HttpRequestBase methodGet = new HttpGet(urlLink);
+    if (customizer != null) {
+      methodGet = customizer.apply(methodGet);
+    }
+
+    if (acceptedContent.length != 0) {
+      methodGet.addHeader("Accept", of(acceptedContent).collect(joining(", ")));
+    }
+
+    methodGet.setHeader("User-Agent", "mvn-jlink-plugin");
+    methodGet.setConfig(config);
+
+    return methodGet;
+  }
+
+  @Nonnull
   @MustNotContainNull
   public static Header[] doGetRequest(
       @Nonnull final HttpClient client,
@@ -89,21 +111,6 @@ public final class HttpUtils {
       @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
 
-    final RequestConfig.Builder config = RequestConfig
-        .custom()
-        .setSocketTimeout(timeout)
-        .setConnectTimeout(timeout);
-
-    if (proxySettings != null) {
-      final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);
-      config.setProxy(proxyHost);
-    }
-
-    HttpRequestBase methodGet = new HttpGet(urlLink);
-    if (customizer != null) {
-      methodGet = customizer.apply(methodGet);
-    }
-
     if (allowOctetStream) {
       if (Arrays.stream(acceptedContent).noneMatch(x -> x.trim().equalsIgnoreCase(MIME_OCTET_STREAM))) {
         acceptedContent = Arrays.copyOf(acceptedContent, acceptedContent.length + 1);
@@ -111,22 +118,49 @@ public final class HttpUtils {
       }
     }
 
-    if (acceptedContent.length != 0) {
-      methodGet.addHeader("Accept", of(acceptedContent).collect(joining(", ")));
+    final RequestConfig.Builder configBuilder = RequestConfig
+        .custom()
+        .setRedirectsEnabled(true)
+        .setSocketTimeout(timeout)
+        .setConnectTimeout(timeout);
+
+    if (proxySettings != null) {
+      final HttpHost proxyHost = new HttpHost(proxySettings.host, proxySettings.port, proxySettings.protocol);
+      configBuilder.setProxy(proxyHost);
     }
 
-    methodGet.setConfig(config.build());
+    RequestConfig config = configBuilder.build();
 
-    final HttpResponse response = client.execute(methodGet);
+    HttpResponse response = null;
+    HttpRequestBase methodGet = null;
     try {
-      final StatusLine statusLine = response.getStatusLine();
+      int statusCode = -1;
+      StatusLine statusLine = null;
+
+      for (int i = 0; i < 5; i++) {
+        methodGet = makeGet(urlLink, config, customizer, acceptedContent);
+        response = client.execute(methodGet);
+        statusLine = response.getStatusLine();
+        statusCode = statusLine.getStatusCode();
+
+        if (statusCode == HttpStatus.SC_GATEWAY_TIMEOUT) {
+          methodGet.releaseConnection();
+          try {
+            Thread.sleep(10000L);
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+          }
+        } else {
+          break;
+        }
+      }
+
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new IOException(String.format("Can't doLoad SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+      }
 
       if (responseConsumer != null) {
         responseConsumer.accept(response);
-      }
-
-      if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
-        throw new IOException(String.format("Can't doLoad SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
       }
 
       final HttpEntity entity = response.getEntity();
@@ -139,7 +173,9 @@ public final class HttpUtils {
       consumer.accept(entity);
 
     } finally {
-      methodGet.releaseConnection();
+      if (methodGet != null) {
+        methodGet.releaseConnection();
+      }
     }
     return response.getAllHeaders();
   }
