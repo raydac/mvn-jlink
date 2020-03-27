@@ -76,7 +76,6 @@
                                 <impl>hotspot</impl>
                                 <releaseDate>2020-03-21-03-31</releaseDate>
                             </providerConfig>
-                            <disableSSLcheck>true</disableSSLcheck>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
                             <pathAsProperty>
@@ -106,7 +105,6 @@
                         <configuration>
                             <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
                             <output>${project.build.directory}${file.separator}preparedJDK</output>
-                            <disableSSLcheck>true</disableSSLcheck>
                             <toolJdk>${jlink.jdk.path}</toolJdk>
                             <addModules>
                                 <module>java.compiler</module>

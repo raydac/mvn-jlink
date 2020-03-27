@@ -9,7 +9,7 @@
 
 # Changelog
 
-__1.1.0 (SNAPSHOT)__
+__1.1.0 (27-mar-2020)__
  - improved processing of Gateway Timeout response
  - reworked `ADOPT` provider to work through [AdoptOpenJdk API V3](https://api.adoptopenjdk.net/swagger-ui/)
  - added `authorization` property which will be provided through `Authorization` header
@@ -35,7 +35,7 @@ Functionality of the plugin is very easy, it just provides way to execute tools 
 At present the plug-in supports listed OpenJDK providers:
 * __LOCAL__ - locally provided JDK will be used for operations
 * __[BELLSOFT](https://www.bell-sw.com/java.html)__ - Prebuilt distributives of OpenJDK 'LIBERICA' for many platforms including embedded ones, __distributives include JavaFX module__
-* __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platforms, there are `hotspot` and `openj9`.
+* __[ADOPT](https://adoptopenjdk.net/)__ - Prebuilt distributives of OpenJDK for many platforms. [It uses AdaptOpenJDK API V3](https://api.adoptopenjdk.net/swagger-ui/).
 * __[ADOPTGIT](https://github.com/AdoptOpenJDK)__ - Prebuilt AdoptOpenJDK distributives for many platform hosted by GitHub.
 * __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - Prebuilt distributives of OpenJDK provided by SAP.
 * __[GRAALVMCE](https://github.com/graalvm/graalvm-ce-builds)__ - Prebuilt JDK distributives of GraalVM Community Edition.
@@ -52,7 +52,7 @@ Code snippet below shows caching of GraalVM CE, the GraalVM distributive will be
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.7</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>cache-jdk11-graalvmce</id>
@@ -78,7 +78,7 @@ Code snippet below shows configuration to cache OpenJDK from ADOPT provider in p
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.7</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -91,10 +91,10 @@ Code snippet below shows configuration to cache OpenJDK from ADOPT provider in p
 
                 <provider>ADOPT</provider>
                 <providerConfig>
-                    <release>jdk8u192-b12</release>
+                    <release>jdk-14+36</release>
                     <arch>x64</arch>
-                    <type>jdk</type>
                     <impl>hotspot</impl>
+                    <project>jdk</project>
                 </providerConfig>
 
             </configuration>
@@ -111,7 +111,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.7</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>call-jdeps</id>
@@ -137,7 +137,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.7</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>call-jlink</id>
@@ -172,7 +172,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.0.7</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>call-tool</id>

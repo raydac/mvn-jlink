@@ -40,7 +40,6 @@
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
-                            <disableSSLcheck>true</disableSSLcheck>
                             <provider>ADOPT</provider>
                             <providerConfig>
                                 <release>jdk8u192-b12</release>
