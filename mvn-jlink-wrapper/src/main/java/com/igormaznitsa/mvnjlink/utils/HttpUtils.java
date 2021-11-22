@@ -16,33 +16,9 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Stream.of;
-
-
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
+import org.apache.http.*;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -67,9 +43,35 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.protocol.HttpContext;
 import org.apache.maven.plugin.logging.Log;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
+
 public final class HttpUtils {
 
   public static final String MIME_OCTET_STREAM = "application/octet-stream";
+  public static final Set<String> ARCHIVE_MIME_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+                  "application/x-gzip",
+                  "application/zip",
+                  "application/tar+gzip"
+          ))
+  );
 
   private HttpUtils() {
 
@@ -107,11 +109,11 @@ public final class HttpUtils {
       @Nullable final Consumer<HttpResponse> responseConsumer,
       @Nonnull final Consumer<HttpEntity> consumer,
       final int timeout,
-      final boolean allowOctetStream,
+      final boolean expectedBinaryFile,
       @Nonnull @MustNotContainNull String... acceptedContent
   ) throws IOException {
 
-    if (allowOctetStream) {
+    if (expectedBinaryFile) {
       if (Arrays.stream(acceptedContent).noneMatch(x -> x.trim().equalsIgnoreCase(MIME_OCTET_STREAM))) {
         acceptedContent = Arrays.copyOf(acceptedContent, acceptedContent.length + 1);
         acceptedContent[acceptedContent.length - 1] = MIME_OCTET_STREAM;
@@ -167,11 +169,11 @@ public final class HttpUtils {
       final ContentTypeParsed contentType = new ContentTypeParsed(ContentType.get(entity).getMimeType());
 
       if (acceptedContent.length != 0 && of(acceptedContent).map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
-        throw new IOException("Unexpected content type : " + ContentType.get(entity).getMimeType() + " (expected: " + Arrays.toString(acceptedContent) + ")");
+        if (!expectedBinaryFile || ARCHIVE_MIME_TYPES.stream().map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
+          throw new IOException("Unexpected content type : " + ContentType.get(entity).getMimeType() + " (expected: " + Arrays.toString(acceptedContent) + ")");
+        }
       }
-
       consumer.accept(entity);
-
     } finally {
       if (methodGet != null) {
         methodGet.releaseConnection();
