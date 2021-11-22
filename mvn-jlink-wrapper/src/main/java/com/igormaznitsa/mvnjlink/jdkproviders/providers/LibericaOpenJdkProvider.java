@@ -173,7 +173,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
 
-      log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
+      log.info("Archive has been loaded successfully, calculated MD5 digest is " + calculatedMd5Digest);
 
       final Optional<Header> etag = of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
 
