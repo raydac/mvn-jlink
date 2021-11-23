@@ -9,6 +9,10 @@
 
 # Changelog
 
+__1.1.1 (23-nov-2021)__
+ - fixed mime type processing for Github authorized requests [#9](https://github.com/raydac/mvn-jlink/issues/9) 
+ - updated dependencies
+
 __1.1.0 (27-mar-2020)__
  - improved processing of Gateway Timeout response
  - reworked `ADOPT` provider to work through [AdoptOpenJdk API V3](https://api.adoptopenjdk.net/swagger-ui/)
@@ -16,13 +20,6 @@ __1.1.0 (27-mar-2020)__
  - added tests
  - improved `ADOPTGIT` provider
  - added logging for detected limit remaining headers
- 
-__1.0.7 (02-feb-2020)__
- - added support of load JDK from [GraalVM-CE repository](https://github.com/graalvm/graalvm-ce-builds)
-
-__1.0.6 (29-jan-2020)__
- - added support of properties to override some config parameters
- - [#4](https://github.com/raydac/mvn-jlink/issues/4) improved `cache-jdk` mojo, added feature to search files in cached JDK root through ANT patterns and place found paths as project properties
    
 [full changelog](CHANGELOG.txt)
 
