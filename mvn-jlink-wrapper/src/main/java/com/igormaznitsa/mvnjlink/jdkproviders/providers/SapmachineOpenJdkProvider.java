@@ -21,11 +21,11 @@ import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.isDirectory;
 import static java.nio.file.Files.isRegularFile;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
@@ -171,15 +171,21 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
     if (doLoadArchive) {
       final MessageDigest digest = DigestUtils.getMd5Digest();
-      final Header[] responseHeaders = this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), release.link, pathToArchiveFile, digest, this.mojo.getConnectionTimeout(), release.mime, HttpUtils.MIME_OCTET_STREAM);
+      final Header[] responseHeaders =
+          this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), release.link,
+              pathToArchiveFile,
+              singletonList(digest), this.mojo.getConnectionTimeout(), release.mime,
+              HttpUtils.MIME_OCTET_STREAM);
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
       final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
 
-      log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
+      log.info(
+          "Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
 
-      final Optional<Header> etag = of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
+      final Optional<Header> etag =
+          of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
 
       if (etag.isPresent()) {
         final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());

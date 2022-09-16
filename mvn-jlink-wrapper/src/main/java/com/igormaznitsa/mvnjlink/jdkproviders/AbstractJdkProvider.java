@@ -25,7 +25,6 @@ import static java.nio.file.Files.newOutputStream;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
-
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
@@ -39,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -244,7 +244,7 @@ public abstract class AbstractJdkProvider {
    * @param client                   http client
    * @param url                      url of the content file
    * @param targetFile               target file to save the content
-   * @param digest                   calculator of needed digest
+   * @param digests                  list of calculators of needed digest
    * @param connectionRequestTimeout timeout for connection request
    * @param acceptedContent          mime types of accepted content
    * @return response headers
@@ -257,7 +257,7 @@ public abstract class AbstractJdkProvider {
       @Nullable final Function<HttpRequestBase, HttpRequestBase> customizer,
       @Nonnull final String url,
       @Nonnull final Path targetFile,
-      @Nonnull final MessageDigest digest,
+      @Nonnull @MustNotContainNull final List<MessageDigest> digests,
       final int connectionRequestTimeout,
       @Nonnull @MustNotContainNull final String... acceptedContent
   ) throws IOException {
@@ -294,10 +294,14 @@ public abstract class AbstractJdkProvider {
                 int lastShownProgress = -1;
 
                 if (showProgress) {
-                  lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
+                  lastShownProgress =
+                      StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize,
+                          PROGRESSBAR_WIDTH, lastShownProgress);
                 }
 
-                digest.reset();
+                for (final MessageDigest digest : digests) {
+                  digest.reset();
+                }
 
                 while (!Thread.currentThread().isInterrupted()) {
                   final int length = inStream.read(buffer);
@@ -306,12 +310,16 @@ public abstract class AbstractJdkProvider {
                   }
 
                   fileOutStream.write(buffer, 0, length);
-                  digest.update(buffer, 0, length);
+                  for (final MessageDigest d : digests) {
+                    d.update(buffer, 0, length);
+                  }
 
                   downloadByteCounter += length;
 
                   if (showProgress) {
-                    lastShownProgress = StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter, contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
+                    lastShownProgress =
+                        StringUtils.printTextProgress(LOADING_TITLE, downloadByteCounter,
+                            contentSize, PROGRESSBAR_WIDTH, lastShownProgress);
                   }
                 }
                 fileOutStream.flush();

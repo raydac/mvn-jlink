@@ -22,6 +22,7 @@ import com.igormaznitsa.mvnjlink.jdkproviders.providers.GraalVmCeJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LibericaOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LocalJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.SapmachineOpenJdkProvider;
+import com.igormaznitsa.mvnjlink.jdkproviders.providers.UrlLinkJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import java.lang.reflect.InvocationTargetException;
 import javax.annotation.Nonnull;
@@ -32,6 +33,7 @@ public enum JdkProviderId {
   BELLSOFT(LibericaOpenJdkProvider.class),
   SAPMACHINE(SapmachineOpenJdkProvider.class),
   GRAALVMCE(GraalVmCeJdkProvider.class),
+  URL(UrlLinkJdkProvider.class),
   LOCAL(LocalJdkProvider.class);
 
   @Nonnull

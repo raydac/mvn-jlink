@@ -20,10 +20,10 @@ import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
 import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.isDirectory;
+import static java.util.Collections.singletonList;
 import static java.util.Locale.ENGLISH;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-
 
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
@@ -266,7 +266,7 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         this.tuneRequestBase(authorization),
         url,
         pathToArchiveFile,
-        digest,
+        singletonList(digest),
         this.mojo.getConnectionTimeout(),
         "application/zip",
         "application/octet-stream",
