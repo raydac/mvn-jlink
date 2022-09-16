@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -74,7 +75,11 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(
+      @Nullable final String authorization,
+      @Nonnull final Map<String, String> config,
+      @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
+  ) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "type", "version", "arch");
@@ -142,7 +147,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
         final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
         result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad, keepArchiveFile)
+            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
+                keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -155,7 +161,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
-      final boolean keepArchiveFile
+      final boolean keepArchiveFile,
+      @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
 
     final Log log = this.mojo.getLog();
@@ -212,15 +219,23 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
+    for (final Consumer<Path> c : loadedArchiveConsumers) {
+      c.accept(pathToArchiveFile);
+    }
+
     final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
     log.debug("Root folder in archive: " + archiveRootName);
 
     log.info("Unpacking archive...");
-    final int numberOfUnpackedFiles = unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder, archiveRootName);
+    final int numberOfUnpackedFiles =
+        unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
+            archiveRootName);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);
+      throw new IOException(
+          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);
     }
-    log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
+    log.info(
+        "Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
 
     if (keepArchiveFile) {
       log.info("Keep downloaded archive file in cache: " + pathToArchiveFile);

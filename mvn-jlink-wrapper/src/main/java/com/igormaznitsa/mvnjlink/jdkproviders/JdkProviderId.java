@@ -21,6 +21,7 @@ import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.GraalVmCeJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LibericaOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LocalJdkProvider;
+import com.igormaznitsa.mvnjlink.jdkproviders.providers.MicrosoftJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.SapmachineOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.UrlLinkJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
@@ -34,6 +35,7 @@ public enum JdkProviderId {
   SAPMACHINE(SapmachineOpenJdkProvider.class),
   GRAALVMCE(GraalVmCeJdkProvider.class),
   URL(UrlLinkJdkProvider.class),
+  MICROSOFT(MicrosoftJdkProvider.class),
   LOCAL(LocalJdkProvider.class);
 
   @Nonnull

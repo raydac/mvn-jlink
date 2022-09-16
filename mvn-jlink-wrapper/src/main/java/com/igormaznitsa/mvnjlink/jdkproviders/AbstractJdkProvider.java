@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -348,7 +349,11 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected Path loadJdkIntoCacheIfNotExist(@Nonnull final Path cacheFolder, @Nonnull final String targetFolderName, @Nonnull IoLoader loader) throws IOException {
+  protected Path loadJdkIntoCacheIfNotExist(
+      @Nonnull final Path cacheFolder,
+      @Nonnull final String targetFolderName,
+      @Nonnull IoLoader loader
+  ) throws IOException {
     final Log log = this.mojo.getLog();
 
     final Path tempFolder = cacheFolder.resolve(".TMP" + targetFolderName);
@@ -382,7 +387,10 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  public abstract Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException;
+  public abstract Path getPathToJdk(@Nullable final String authorization,
+                                    @Nonnull final Map<String, String> config,
+                                    @Nonnull @MustNotContainNull
+                                    Consumer<Path>... loadedArchiveConsumers) throws IOException;
 
   @FunctionalInterface
   public interface IoLoader {

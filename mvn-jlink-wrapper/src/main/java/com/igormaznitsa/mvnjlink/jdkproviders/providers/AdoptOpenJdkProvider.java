@@ -25,6 +25,7 @@ import static java.util.Locale.ENGLISH;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 
+import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
@@ -41,6 +42,7 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -71,7 +73,11 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nullable final String authorization, @Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(
+      @Nullable final String authorization,
+      @Nonnull final Map<String, String> config,
+      @Nonnull @MustNotContainNull final Consumer<Path>... loadedArchiveConsumers
+  ) throws IOException {
     final Log log = this.mojo.getLog();
 
     assertParameters(config, "release", "arch");
@@ -137,7 +143,9 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
             jdkHeapSize,
             jdkVendor,
             jdkProject,
-            keepArchiveFile);
+            keepArchiveFile,
+            loadedArchiveConsumers
+        );
       } catch (NumberFormatException ex) {
         result = loadReleaseVersion(
             authorization,
@@ -151,7 +159,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
             jdkHeapSize,
             jdkVendor,
             jdkProject,
-            keepArchiveFile
+            keepArchiveFile,
+            loadedArchiveConsumers
         );
       }
     }
@@ -173,7 +182,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final String heapSize,
       @Nonnull final String vendor,
       @Nullable final String project,
-      final boolean keepArchive
+      final boolean keepArchive,
+      @Nonnull @MustNotContainNull final Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
 
     this.mojo.getLog().debug("Loading featured version");
@@ -198,7 +208,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         this.tuneClient(authorization),
         this.mojo.isDisableSSLcheck());
 
-    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder, keepArchive);
+    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder,
+        keepArchive, loadedArchiveConsumers);
     return unpackFolder;
   }
 
@@ -215,7 +226,9 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final String heapSize,
       @Nonnull final String vendor,
       @Nullable final String project,
-      final boolean keepArchive) throws IOException {
+      final boolean keepArchive,
+      @Nonnull @MustNotContainNull final Consumer<Path>... loadedArchiveConsumers)
+      throws IOException {
 
     this.mojo.getLog().debug("Loading release version");
 
@@ -238,7 +251,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
         this.tuneClient(authorization),
         this.mojo.isDisableSSLcheck());
 
-    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder, keepArchive);
+    downloadAndUnpack(BASEURL + url, httpClient, authorization, workFolder, unpackFolder,
+        keepArchive, loadedArchiveConsumers);
     return unpackFolder;
   }
 
@@ -248,7 +262,8 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       @Nullable final String authorization,
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
-      final boolean keepArchiveFile
+      final boolean keepArchiveFile,
+      @Nonnull @MustNotContainNull final Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
 
     final Log log = this.mojo.getLog();
@@ -278,7 +293,9 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
 
     log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-    final Optional<Header> originalFileName = of(responseHeaders).filter(x -> "Content-Disposition".equalsIgnoreCase(x.getName())).findFirst();
+    final Optional<Header> originalFileName =
+        of(responseHeaders).filter(x -> "Content-Disposition".equalsIgnoreCase(x.getName()))
+            .findFirst();
 
     if (originalFileName.isPresent()) {
       Path newArch = pathToArchiveFile.resolveSibling(originalFileName.get().getValue());
@@ -288,12 +305,17 @@ public class AdoptOpenJdkProvider extends AbstractJdkProvider {
       throw new IOException("Can't find Content-Disposition among headers in response");
     }
 
+    for (final Consumer<Path> c : loadedArchiveConsumers) {
+      c.accept(pathToArchiveFile);
+    }
 
     final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
 
-    log.info("Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
+    log.info(
+        "Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
 
-    final Optional<Header> etag = of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
+    final Optional<Header> etag =
+        of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
 
     if (etag.isPresent()) {
       final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Hex;
@@ -91,8 +92,10 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
     return result.toString();
   }
 
-  private static void assertChecksum(@Nonnull final String expected, @Nonnull @MustNotContainNull
-  final List<MessageDigest> calculated, final String algorithm) {
+  private static void assertChecksum(
+      @Nonnull final String expected,
+      @Nonnull @MustNotContainNull final List<MessageDigest> calculated,
+      @Nonnull final String algorithm) {
     MessageDigest messageDigest = null;
     for (final MessageDigest d : calculated) {
       if (d.getAlgorithm().equalsIgnoreCase(algorithm)) {
@@ -117,8 +120,11 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
 
   @Nonnull
   @Override
-  public Path getPathToJdk(@Nullable final String authorization,
-                           @Nonnull final Map<String, String> config) throws IOException {
+  public Path getPathToJdk(
+      @Nullable final String authorization,
+      @Nonnull final Map<String, String> config,
+      @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
+  ) throws IOException {
 
     final Log log = this.mojo.getLog();
     assertParameters(config, "id", "url");
@@ -173,7 +179,10 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
                   sha512,
                   md2,
                   md5,
-                  keepArchiveFile, allowedMimes)
+                  keepArchiveFile,
+                  allowedMimes,
+                  loadedArchiveConsumers
+              )
       );
     }
     return result;
@@ -192,7 +201,8 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       @Nullable final String md2checksum,
       @Nullable final String md5checksum,
       final boolean keepArchiveFile,
-      @Nonnull @MustNotContainNull final String[] allowedMimes
+      @Nonnull @MustNotContainNull final String[] allowedMimes,
+      @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
 
     final Log log = this.mojo.getLog();
@@ -264,6 +274,10 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
     if (isDirectory(destUnpackFolder)) {
       log.info("Detected existing target folder, deleting it: " + destUnpackFolder.getFileName());
       deleteDirectory(destUnpackFolder.toFile());
+    }
+
+    for (final Consumer<Path> c : loadedArchiveConsumers) {
+      c.accept(pathToArchiveFile);
     }
 
     final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
