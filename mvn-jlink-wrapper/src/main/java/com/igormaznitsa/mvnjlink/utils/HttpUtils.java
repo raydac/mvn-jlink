@@ -164,7 +164,8 @@ public final class HttpUtils {
       }
 
       if (statusCode != HttpStatus.SC_OK) {
-        throw new IOException(String.format("Can't doLoad SDK archive from %s : %d %s", urlLink, statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+        throw new IOException(String.format("Can't download SDK archive from %s : %d %s", urlLink,
+            statusLine.getStatusCode(), statusLine.getReasonPhrase()));
       }
 
       if (responseConsumer != null) {

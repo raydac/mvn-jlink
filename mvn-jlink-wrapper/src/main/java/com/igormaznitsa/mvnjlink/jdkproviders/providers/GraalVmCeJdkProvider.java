@@ -120,7 +120,10 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
 
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(log,
+            doHttpGetText(httpClient, this.tuneRequestBase(authorization),
+                RELEASES_LIST + "?per_page=40&page=" + page, this.mojo.getConnectionTimeout(),
+                "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
 

@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2019 Igor Maznitsa.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -9,11 +25,22 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-adopt-jdk14</artifactId>
+    <artifactId>mvn-jlink-test-adoptioum-jdk8</artifactId>
     <packaging>jar</packaging>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <verbose>true</verbose>
+                    <executable>${jlink.javac.path}</executable>
+                    <fork>true</fork>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -35,53 +62,25 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-14</id>
+                        <id>do-cache-jdk</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
-                            <provider>ADOPT</provider>
+                            <provider>ADOPTIUM</provider>
                             <providerConfig>
-                                <release>jdk-14+36</release>
+                                <repositoryName>temurin8-binaries</repositoryName>
+                                <version>8U</version>
                                 <arch>x64</arch>
+                                <type>jdk</type>
                                 <impl>hotspot</impl>
-                                <project>jdk</project>
+                                <build>8u332b09</build>
                             </providerConfig>
+                            <pathAsProperty>
+                                <jlink.javac.path>/**/javac${exe.extension}</jlink.javac.path>
+                            </pathAsProperty>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>call-jdeps</id>
-                        <goals>
-                            <goal>jdeps</goal>
-                        </goals>
-                        <configuration>
-                            <output>${project.build.directory}${file.separator}jdeps.out</output>
-                            <toolJdk>${jlink.jdk.path}</toolJdk>
-                            <options>
-                                <option>${project.build.directory}${file.separator}${project.build.finalName}.jar
-                                </option>
-                            </options>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>call-jlink</id>
-                        <goals>
-                            <goal>jlink</goal>
-                        </goals>
-                        <configuration>
-                            <jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
-                            <output>${project.build.directory}${file.separator}preparedJDK</output>
-                            <toolJdk>${jlink.jdk.path}</toolJdk>
-                            <addModules>
-                                <module>java.compiler</module>
-                            </addModules>
-                            <options>
-                                <option>--compress=2</option>
-                                <option>--no-header-files</option>
-                                <option>--no-man-pages</option>
-                            </options>
                         </configuration>
                     </execution>
                 </executions>
@@ -89,11 +88,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M2</version>
                 <executions>
                     <execution>
-                        <id>check-folder-exist</id>
-                        <phase>verify</phase>
+                        <id>check-javac-exists</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
@@ -101,7 +99,7 @@
                             <rules>
                                 <requireFilesExist>
                                     <files>
-                                        <file>${project.build.directory}${file.separator}preparedJDK</file>
+                                        <file>${jlink.javac.path}</file>
                                     </files>
                                 </requireFilesExist>
                             </rules>

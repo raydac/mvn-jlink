@@ -67,7 +67,7 @@ public class MicrosoftJdkProvider extends UrlLinkJdkProvider {
           createHttpClient(authorization),
           this.tuneRequestBase(authorization),
           urlArchiveSha,
-          60000, MIME_TEXT
+          this.mojo.getConnectionTimeout(), MIME_TEXT
       ).trim();
       final StringBuilder buffer = new StringBuilder();
       for (final char c : body.toCharArray()) {

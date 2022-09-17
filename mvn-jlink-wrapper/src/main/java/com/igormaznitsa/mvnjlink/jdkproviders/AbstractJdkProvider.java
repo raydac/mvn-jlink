@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
@@ -61,11 +62,9 @@ import org.apache.maven.plugin.logging.Log;
 public abstract class AbstractJdkProvider {
 
   protected static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
-
-  protected final AbstractJdkToolMojo mojo;
-
   protected static final String[] MIME_TEXT =
       new String[] {"text/plain", "application/octet-stream"};
+  protected final AbstractJdkToolMojo mojo;
 
   public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
@@ -74,6 +73,62 @@ public abstract class AbstractJdkProvider {
   @Nonnull
   private static String hideSensitiveText(@Nonnull final String text) {
     return text.charAt(0) + "_____" + text.charAt(text.length() - 1);
+  }
+
+  protected static void assertParameters(@Nonnull final Map<String, String> attrMap,
+                                         @Nonnull @MustNotContainNull final String... names) {
+    final Optional<String> notFoundAttribute =
+        of(names).filter(x -> !attrMap.containsKey(x)).findAny();
+    if (notFoundAttribute.isPresent()) {
+      throw new IllegalArgumentException(
+          format("Parameter named '%s' must be presented", notFoundAttribute.get()));
+    }
+  }
+
+  @Nonnull
+  protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
+    try (final InputStream in = newInputStream(file)) {
+      return sha256Hex(in);
+    }
+  }
+
+  @Nonnull
+  protected static String normalizeChecksum(@Nonnull final String text) {
+    final StringBuilder result = new StringBuilder(text.length());
+
+    for (final char c : text.toCharArray()) {
+      if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+        result.append(Character.toUpperCase(c));
+      }
+    }
+
+    return result.toString();
+  }
+
+  protected static void assertChecksum(
+      @Nonnull final String expected,
+      @Nonnull @MustNotContainNull final List<MessageDigest> calculated,
+      @Nonnull final String algorithm) {
+    MessageDigest messageDigest = null;
+    for (final MessageDigest d : calculated) {
+      if (d.getAlgorithm().equalsIgnoreCase(algorithm)) {
+        messageDigest = d;
+        break;
+      }
+    }
+
+    if (messageDigest == null) {
+      throw new IllegalStateException("Can't find digest for algorithm: " + algorithm);
+    }
+
+    final String value =
+        normalizeChecksum(Hex.encodeHexString(messageDigest.digest()));
+
+    if (!value.equals(normalizeChecksum(expected))) {
+      throw new IllegalStateException(
+          "Digest is not correct, expected '" + expected + "' but calculated '" + value +
+              "'");
+    }
   }
 
   @Nonnull
@@ -101,20 +156,6 @@ public abstract class AbstractJdkProvider {
   @Nullable
   protected Function<HttpClientBuilder, HttpClientBuilder> tuneClient(@Nullable final String authorization) {
     return x -> x;
-  }
-
-  protected static void assertParameters(@Nonnull final Map<String, String> attrMap, @Nonnull @MustNotContainNull final String... names) {
-    final Optional<String> notFoundAttribute = of(names).filter(x -> !attrMap.containsKey(x)).findAny();
-    if (notFoundAttribute.isPresent()) {
-      throw new IllegalArgumentException(format("Parameter named '%s' must be presented", notFoundAttribute.get()));
-    }
-  }
-
-  @Nonnull
-  protected static String calcSha256ForFile(@Nonnull final Path file) throws IOException {
-    try (final InputStream in = newInputStream(file)) {
-      return sha256Hex(in);
-    }
   }
 
   @Nonnull

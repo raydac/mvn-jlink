@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
@@ -86,45 +85,6 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
   }
 
   @Nonnull
-  private static String normalizeChecksum(@Nonnull final String text) {
-    final StringBuilder result = new StringBuilder(text.length());
-
-    for (final char c : text.toCharArray()) {
-      if (Character.isDigit(c) || Character.isAlphabetic(c)) {
-        result.append(Character.toUpperCase(c));
-      }
-    }
-
-    return result.toString();
-  }
-
-  private static void assertChecksum(
-      @Nonnull final String expected,
-      @Nonnull @MustNotContainNull final List<MessageDigest> calculated,
-      @Nonnull final String algorithm) {
-    MessageDigest messageDigest = null;
-    for (final MessageDigest d : calculated) {
-      if (d.getAlgorithm().equalsIgnoreCase(algorithm)) {
-        messageDigest = d;
-        break;
-      }
-    }
-
-    if (messageDigest == null) {
-      throw new IllegalStateException("Can't find digest for algorithm: " + algorithm);
-    }
-
-    final String value =
-        normalizeChecksum(Hex.encodeHexString(messageDigest.digest()));
-
-    if (!value.equals(normalizeChecksum(expected))) {
-      throw new IllegalStateException(
-          "Digest is not correct, expected '" + expected + "' but calculated '" + value +
-              "'");
-    }
-  }
-
-  @Nonnull
   @Override
   public Path getPathToJdk(
       @Nullable final String authorization,
@@ -137,6 +97,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
 
     final String id = asserAppropriateFileName(config.get("id").trim());
     final String url = config.get("url");
+    final String sha1 = config.get("sha1");
     final String sha256 = config.get("sha256");
     final String sha384 = config.get("sha384");
     final String sha512 = config.get("sha512");
@@ -181,6 +142,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
           assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
               downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, url,
                   archiveFileName,
+                  sha1,
                   sha256,
                   sha384,
                   sha512,
@@ -203,6 +165,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       @Nonnull final Path destUnpackFolder,
       @Nonnull final String downloadLink,
       @Nonnull final String archiveFileName,
+      @Nullable final String sha1checksum,
       @Nullable final String sha256checksum,
       @Nullable final String sha384checksum,
       @Nullable final String sha512checksum,
@@ -227,6 +190,9 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
     String mimeContentType = "unknown";
     if (doLoadArchive) {
       final List<MessageDigest> digests = new ArrayList<>();
+      if (sha1checksum != null) {
+        digests.add(DigestUtils.getSha1Digest());
+      }
       if (sha384checksum != null) {
         digests.add(DigestUtils.getSha384Digest());
       }
@@ -255,6 +221,11 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
 
       log.debug("Downloaded file content type: " + mimeContentType);
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
+
+      if (sha1checksum != null) {
+        assertChecksum(sha1checksum, digests, MessageDigestAlgorithms.SHA_1);
+        log.info("SHA1 digest is OK");
+      }
 
       if (md2checksum != null) {
         assertChecksum(md2checksum, digests, MessageDigestAlgorithms.MD2);

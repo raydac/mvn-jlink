@@ -51,8 +51,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
@@ -66,11 +66,27 @@ import org.json.JSONObject;
  */
 public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
-  private static final String RELEASES_LIST = "https://api.github.com/repos/SAP/SapMachine/releases";
+  private static final String RELEASES_LIST =
+      "https://api.github.com/repos/SAP/SapMachine/releases";
   private static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   public SapmachineOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
+  }
+
+  @Nonnull
+  private static String replaceExtension(@Nonnull final String url,
+                                         @Nonnull final String newExtension) {
+    if (url.toLowerCase(Locale.ENGLISH).endsWith(".tar.gz")) {
+      return url.substring(0, url.length() - 6) + newExtension;
+    } else {
+      final int dotIndex = url.lastIndexOf('.');
+      if (dotIndex >= 0) {
+        return url.substring(0, dotIndex + 1) + newExtension;
+      } else {
+        return url + '.' + newExtension;
+      }
+    }
   }
 
   @Nonnull
@@ -92,7 +108,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
+    final boolean keepArchiveFile =
+        Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
     final Path cachedJdkPath = cacheFolder.resolve(String.format("SAPMACHINE_%s%s_%s_%s",
@@ -109,12 +126,15 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       result = cachedJdkPath;
     } else {
       if (isOfflineMode()) {
-        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() + "' is not found, stopping process because offline mode is active");
+        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() +
+            "' is not found, stopping process because offline mode is active");
       } else {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient =
+          HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization),
+              this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> foundReleases = Collections.emptyList();
@@ -123,7 +143,10 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
 
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(log,
+            doHttpGetText(httpClient, this.tuneRequestBase(authorization),
+                RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(),
+                "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
 
         foundReleases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
@@ -137,18 +160,24 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
       if (foundReleases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());
-        throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
+        throw new IOException(
+            String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'",
+                jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
 
         log.debug("Found releases: " + foundReleases);
 
-        final Optional<ReleaseList.Release> tarRelease = foundReleases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
-        final Optional<ReleaseList.Release> zipRelease = foundReleases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> tarRelease =
+            foundReleases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> zipRelease =
+            foundReleases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
-        final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                keepArchiveFile, loadedArchiveConsumers)
+        final ReleaseList.Release releaseToLoad =
+            of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
+        result = loadJdkIntoCacheIfNotExist(cacheFolder,
+            assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
+                downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
+                    keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -177,7 +206,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final MessageDigest digest = DigestUtils.getMd5Digest();
+      final MessageDigest digest = DigestUtils.getSha256Digest();
       final Header[] responseHeaders =
           this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), release.link,
               pathToArchiveFile,
@@ -186,30 +215,33 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
+      final String sha256link = replaceExtension(release.link, "sha256.txt");
 
-      log.info(
-          "Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
-
-      final Optional<Header> etag =
-          of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
-
-      if (etag.isPresent()) {
-        final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
-        if (matcher.find()) {
-          final String extractedEtag = matcher.group(1);
-          if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
-            log.info("Calculated MD5 is equal to the ETag in response");
-          } else {
-            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
-          }
-        } else {
-          log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
-        }
-      } else {
-        log.warn("ETag is not presented in the response or its value can't be parsed");
+      final String sha256text;
+      try {
+        log.debug("Loading SHA256 text: " + sha256link);
+        sha256text = this.doHttpGetText(
+            createHttpClient(authorization),
+            this.tuneRequestBase(authorization),
+            sha256link,
+            mojo.getConnectionTimeout(), MIME_TEXT
+        ).trim();
+      } catch (Exception ex) {
+        log.error("Can't find SHA256 for distributive: " + sha256link, ex);
+        throw ex;
       }
-
+      final StringBuilder buffer = new StringBuilder();
+      for (final char c : sha256text.toCharArray()) {
+        if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+          buffer.append(c);
+        } else {
+          break;
+        }
+      }
+      final String sha256signature = buffer.toString();
+      log.info("Loaded SHA256 for distributive: " + sha256signature);
+      assertChecksum(sha256signature, Collections.singletonList(digest),
+          MessageDigestAlgorithms.SHA_256);
     } else {
       log.info("Archive loading is skipped");
     }
@@ -297,7 +329,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
     @Nonnull
     @MustNotContainNull
-    public List<Release> find(@Nonnull final String type, @Nonnull final String version, @Nonnull final String os, @Nonnull final String arch) {
+    public List<Release> find(@Nonnull final String type, @Nonnull final String version,
+                              @Nonnull final String os, @Nonnull final String arch) {
       final WildCardMatcher matcher = new WildCardMatcher(version, true);
       return this.releases.stream()
           .filter(x -> x.type.equalsIgnoreCase(type))
@@ -313,7 +346,9 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
     private static class Release {
 
-      private static final Pattern SAPMACHINE_FILENAME_PATTERN = Pattern.compile("^sapmachine-(jdk|jre)-([a-z\\-0-9.+]+)_([a-z]+)-([a-z0-9\\-]+)_bin.(.+)$", Pattern.CASE_INSENSITIVE);
+      private static final Pattern SAPMACHINE_FILENAME_PATTERN = Pattern.compile(
+          "^sapmachine-(jdk|jre)-([a-z\\-0-9.+]+)_([a-z]+)-([a-z0-9\\-]+)_bin.(.+)$",
+          Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
@@ -350,7 +385,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull
       @Override
       public String toString() {
-        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']", this.type, this.version, this.os, this.arch, this.extension);
+        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']",
+            this.type, this.version, this.os, this.arch, this.extension);
       }
     }
   }

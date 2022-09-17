@@ -50,8 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
@@ -64,10 +64,22 @@ import org.json.JSONObject;
 public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
   static final String RELEASES_LIST = "https://api.github.com/repos/bell-sw/Liberica/releases";
-  static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
+  private final Pattern PATTERN_SHA1 = Pattern.compile("\\s*(\\S+)\\s+(\\S+)\\s*");
 
   public LibericaOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
+  }
+
+  @Nonnull
+  private static String replaceFileInUrl(@Nonnull final String url,
+                                         @Nonnull final String fileName) {
+    final int lastSlash = url.lastIndexOf('/');
+    final int lastQuestionMark = url.lastIndexOf('?');
+
+    final String query = lastQuestionMark < 0 ? "" : url.substring(lastQuestionMark);
+    final String path = lastSlash >= 0 ? url.substring(0, lastSlash + 1) : "";
+
+    return path + fileName + query;
   }
 
   @Nonnull
@@ -89,7 +101,8 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
+    final boolean keepArchiveFile =
+        Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
     final Path cachedJdkPath = cacheFolder.resolve(String.format("LIBERICA_%s%s_%s_%s",
@@ -106,12 +119,15 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       result = cachedJdkPath;
     } else {
       if (isOfflineMode()) {
-        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() + "' is not found, stopping process because offline mode is active");
+        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() +
+            "' is not found, stopping process because offline mode is active");
       } else {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient =
+          HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization),
+              this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> releases = Collections.emptyList();
@@ -120,7 +136,12 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
 
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(
+            log,
+            doHttpGetText(httpClient, this.tuneRequestBase(authorization),
+                RELEASES_LIST + "?per_page=40&page=" + page, this.mojo.getConnectionTimeout(),
+                "application/vnd.github.v3+json")
+        );
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
 
@@ -133,17 +154,23 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       if (releases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());
-        throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
+        throw new IOException(
+            String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'",
+                jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
         log.debug("Found releases: " + releases);
 
-        final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
-        final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> tarRelease =
+            releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> zipRelease =
+            releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
-        final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                keepArchiveFile, loadedArchiveConsumers)
+        final ReleaseList.Release releaseToLoad =
+            of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
+        result = loadJdkIntoCacheIfNotExist(cacheFolder,
+            assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
+                downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
+                    keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -172,7 +199,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final MessageDigest digest = DigestUtils.getMd5Digest();
+      final MessageDigest digest = DigestUtils.getSha1Digest();
       final Header[] responseHeaders = this.doHttpGetIntoFile(
           client,
           this.tuneRequestBase(authorization),
@@ -185,30 +212,38 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
+      final String urlSha1File = replaceFileInUrl(release.link, "sha1sum.txt");
+      log.debug("Loading SHA1 file from " + urlSha1File);
 
-      log.info(
-          "Archive has been loaded successfully, calculated MD5 digest is " + calculatedMd5Digest);
+      final String[] sha1fileLines = doHttpGetText(
+          client,
+          this.tuneRequestBase(authorization),
+          urlSha1File,
+          this.mojo.getConnectionTimeout(), MIME_TEXT).split("\\n");
 
-      final Optional<Header> etag =
-          of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
+      log.info("Downloaded sha1sum.txt file, it contains " + sha1fileLines.length + " lines");
 
-      if (etag.isPresent()) {
-        final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
+      String sha1 = null;
+
+      for (final String line : sha1fileLines) {
+        Matcher matcher = PATTERN_SHA1.matcher(line);
         if (matcher.find()) {
-          final String extractedEtag = matcher.group(1);
-          if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
-            log.info("Calculated MD5 is equal to the ETag in response");
-          } else {
-            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
+          final String partSha1 = matcher.group(1);
+          final String partFileName = matcher.group(2);
+          if (partFileName.equals(release.fileName)) {
+            log.debug("sha1sum.txt: " + partSha1 + " " + partFileName);
+            sha1 = partSha1;
+            break;
           }
-        } else {
-          log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
         }
-      } else {
-        log.warn("ETag is not presented in the response or its value can't be parsed");
       }
 
+      if (sha1 == null) {
+        throw new IOException(
+            "Can't find SHA1 in sha1sum.txt (" + urlSha1File + ") for file " + release.fileName);
+      }
+      assertChecksum(sha1, Collections.singletonList(digest), MessageDigestAlgorithms.SHA_1);
+      log.info("SHA1 is OK");
     } else {
       log.info("Archive loading is skipped");
     }
@@ -222,15 +257,15 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       c.accept(pathToArchiveFile);
     }
 
-    final String archiveRoorName = ArchUtils.findShortestDirectory(pathToArchiveFile);
-    log.debug("Root archive folder: " + archiveRoorName);
+    final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
+    log.debug("Root archive folder: " + archiveRootName);
     log.info("Unpacking archive...");
     final int numberOfUnpackedFiles =
         unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
-            archiveRoorName);
+            archiveRootName);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException(
-          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
+          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);
     }
     log.info(
         "Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
@@ -247,10 +282,6 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     private final List<Release> releases = new ArrayList<>();
 
     private ReleaseList() {
-    }
-
-    public void add(@Nonnull final ReleaseList list) {
-      this.releases.addAll(list.releases);
     }
 
     private ReleaseList(@Nonnull final Log log, @Nonnull final String json) {
@@ -289,13 +320,18 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       }
     }
 
+    public void add(@Nonnull final ReleaseList list) {
+      this.releases.addAll(list.releases);
+    }
+
     public boolean isEmpty() {
       return this.releases.isEmpty();
     }
 
     @Nonnull
     @MustNotContainNull
-    public List<Release> find(@Nonnull final String type, @Nonnull final String version, @Nonnull final String os, @Nonnull final String arch) {
+    public List<Release> find(@Nonnull final String type, @Nonnull final String version,
+                              @Nonnull final String os, @Nonnull final String arch) {
       final WildCardMatcher matcher = new WildCardMatcher(version, true);
       return this.releases.stream()
           .filter(x -> x.type.equalsIgnoreCase(type))
@@ -311,7 +347,9 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     static class Release {
 
-      static final Pattern BELLSOFT_FILENAME_PATTERN = Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      static final Pattern BELLSOFT_FILENAME_PATTERN =
+          Pattern.compile("^bellsoft-([a-z]+)([.a-z0-9+]+)-([a-z]+)-([^.]+).(.+)$",
+              Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
@@ -348,7 +386,8 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull
       @Override
       public String toString() {
-        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']", this.type, this.version, this.os, this.arch, this.extension);
+        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']",
+            this.type, this.version, this.os, this.arch, this.extension);
       }
     }
   }

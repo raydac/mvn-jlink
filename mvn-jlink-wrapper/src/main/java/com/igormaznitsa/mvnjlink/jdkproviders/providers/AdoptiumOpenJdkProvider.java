@@ -50,8 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
@@ -59,13 +59,14 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Provider of prebuilt Adopt OpenJDK archives <a href="https://github.com/AdoptOpenJDK">in Git repository</a>
+ * Provider of prebuilt Adopt OpenJDK archives <a href="https://github.com/adoptium">in Git repository</a>
  */
-public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
+public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
 
-  private static final String RELEASES_LIST_TEMPLATE = "https://api.github.com/repos/AdoptOpenJDK/%s/releases";
+  private static final String RELEASES_LIST_TEMPLATE =
+      "https://api.github.com/repos/adoptium/%s/releases";
 
-  public AdoptGitOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
+  public AdoptiumOpenJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
 
@@ -78,7 +79,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
   ) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertParameters(config, "repositoryName", "arch", "type", "impl", "releaseDate");
+    assertParameters(config, "repositoryName", "arch", "type", "impl", "build");
 
     final String defaultOs = findCurrentOs("macos");
 
@@ -86,7 +87,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
     final String gitRepositoryName = config.get("repositoryName");
     final String jdkVersion = config.getOrDefault("version", "");
-    final String releaseDate = config.get("releaseDate");
+    final String build = config.get("build");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
     final String jdkType = config.get("type");
@@ -94,9 +95,9 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
     final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final String cachedJdkFolderName = String.format(
-        "ADOPTGIT_%s_%s_%s_%s_%s",
+        "ADOPTIUM_%s_%s_%s_%s_%s",
         escapeFileName(jdkVersion.toLowerCase(ENGLISH).trim()),
-        escapeFileName(releaseDate.toLowerCase(ENGLISH).trim()),
+        escapeFileName(build.toLowerCase(ENGLISH).trim()),
         escapeFileName(jdkOs.toLowerCase(ENGLISH).trim()),
         escapeFileName(jdkArch.toLowerCase(ENGLISH).trim()),
         escapeFileName(jdkImpl.toLowerCase(ENGLISH).trim())
@@ -127,12 +128,13 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
       while (!Thread.currentThread().isInterrupted()) {
         log.debug("Loading releases page: " + page);
 
-        final String pageUrl = String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=100&page=" + page;
+        final String pageUrl =
+            String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=20&page=" + page;
         log.debug("Page url: " + pageUrl);
         final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl,
             this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
-        releases = releaseList.find(jdkVersion, jdkType, jdkArch, jdkOs, jdkImpl, releaseDate);
+        releases = releaseList.find(jdkVersion, jdkType, jdkArch, jdkOs, jdkImpl, build);
 
         if (!releases.isEmpty() || pageReleases.isEmpty()) {
           break;
@@ -182,7 +184,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final MessageDigest digest = DigestUtils.getMd5Digest();
+      final MessageDigest digest = DigestUtils.getSha256Digest();
       final Header[] responseHeaders = this.doHttpGetIntoFile(
           client,
           this.tuneRequestBase(authorization),
@@ -195,30 +197,34 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
+      final String sha256link = release.link + ".sha256.txt";
 
-      log.info(
-          "Archive has been loaded successfully, calculated MD5 digest is " + calculatedMd5Digest);
-
-      final Optional<Header> etag =
-          of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
-
-      if (etag.isPresent()) {
-        final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
-        if (matcher.find()) {
-          final String extractedEtag = matcher.group(1);
-          if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
-            log.info("Calculated MD5 is equal to the ETag in response");
-          } else {
-            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
-          }
-        } else {
-          log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
-        }
-      } else {
-        log.warn("ETag is not presented in the response or its value can't be parsed");
+      final String sha256text;
+      try {
+        log.debug("Loading SHA256 text: " + sha256link);
+        sha256text = this.doHttpGetText(
+            createHttpClient(authorization),
+            this.tuneRequestBase(authorization),
+            sha256link,
+            mojo.getConnectionTimeout(),
+            MIME_TEXT
+        ).trim();
+      } catch (Exception ex) {
+        log.error("Can't find SHA256 for distributive: " + sha256link, ex);
+        throw ex;
       }
-
+      final StringBuilder buffer = new StringBuilder();
+      for (final char c : sha256text.toCharArray()) {
+        if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+          buffer.append(c);
+        } else {
+          break;
+        }
+      }
+      final String sha256signature = buffer.toString();
+      log.info("Loaded SHA256 for distributive: " + sha256signature);
+      assertChecksum(sha256signature, Collections.singletonList(digest),
+          MessageDigestAlgorithms.SHA_256);
     } else {
       log.info("Archive loading is skipped");
     }
@@ -309,15 +315,15 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
                               @Nonnull final String arch,
                               @Nonnull final String os,
                               @Nonnull final String impl,
-                              @Nonnull final String releaseDate) {
-      final WildCardMatcher matcher = new WildCardMatcher(releaseDate, true);
+                              @Nonnull final String build) {
+      final WildCardMatcher matcher = new WildCardMatcher(build, true);
       return this.releases.stream()
           .filter(x -> x.version.equalsIgnoreCase(version))
           .filter(x -> x.type.equalsIgnoreCase(type))
           .filter(x -> x.arch.equalsIgnoreCase(arch))
           .filter(x -> x.os.equalsIgnoreCase(os))
           .filter(x -> x.impl.equalsIgnoreCase(impl))
-          .filter(x -> matcher.match(x.releaseDate)).collect(toList());
+          .filter(x -> matcher.match(x.build)).collect(toList());
     }
 
     @Nonnull
@@ -334,7 +340,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
       private final String arch;
       private final String os;
       private final String impl;
-      private final String releaseDate;
+      private final String build;
       private final String fileName;
       private final String link;
       private final String mime;
@@ -358,7 +364,7 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
           this.arch = matcher.group(3);
           this.os = matcher.group(4);
           this.impl = matcher.group(5);
-          this.releaseDate = matcher.group(6);
+          this.build = matcher.group(6);
           this.extension = matcher.group(7);
         } else {
           throw new IllegalArgumentException("Can't parse file name: " + fileName);
@@ -368,13 +374,14 @@ public class AdoptGitOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull
       @Override
       public String toString() {
-        return String.format("Release[version='%s',type='%s',arch='%s',os='%s',impl='%s',date='%s',extension='%s']",
+        return String.format(
+            "Release[version='%s',type='%s',arch='%s',os='%s',impl='%s',build='%s',extension='%s']",
             this.version,
             this.type,
             this.arch,
             this.os,
             this.impl,
-            this.releaseDate,
+            this.build,
             this.extension);
       }
     }

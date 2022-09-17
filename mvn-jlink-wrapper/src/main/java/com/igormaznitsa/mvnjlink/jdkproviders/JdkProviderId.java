@@ -16,8 +16,7 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
-import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptGitOpenJdkProvider;
-import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptOpenJdkProvider;
+import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptiumOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.GraalVmCeJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LibericaOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LocalJdkProvider;
@@ -29,8 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import javax.annotation.Nonnull;
 
 public enum JdkProviderId {
-  ADOPT(AdoptOpenJdkProvider.class),
-  ADOPTGIT(AdoptGitOpenJdkProvider.class),
+  ADOPTIUM(AdoptiumOpenJdkProvider.class),
   BELLSOFT(LibericaOpenJdkProvider.class),
   SAPMACHINE(SapmachineOpenJdkProvider.class),
   GRAALVMCE(GraalVmCeJdkProvider.class),
