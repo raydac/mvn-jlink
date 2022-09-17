@@ -29,6 +29,7 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +64,9 @@ public abstract class AbstractJdkProvider {
 
   protected final AbstractJdkToolMojo mojo;
 
+  protected static final String[] MIME_TEXT =
+      new String[] {"text/plain", "application/octet-stream"};
+
   public AbstractJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     this.mojo = assertNotNull(mojo);
   }
@@ -73,7 +77,18 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected Function<HttpRequestBase, HttpRequestBase> tuneRequestBase(@Nullable final String authorization) {
+  protected HttpClient createHttpClient(@Nullable final String authorization) throws IOException {
+    return HttpUtils.makeHttpClient(
+        this.mojo.getLog(),
+        this.mojo.getProxy(),
+        this.tuneClient(authorization),
+        this.mojo.isDisableSSLcheck()
+    );
+  }
+
+  @Nonnull
+  protected Function<HttpRequestBase, HttpRequestBase> tuneRequestBase(
+      @Nullable final String authorization) {
     return x -> {
       if (authorization != null && !authorization.isEmpty()) {
         mojo.getLog().info("Providing authorization header: " + hideSensitiveText(authorization));

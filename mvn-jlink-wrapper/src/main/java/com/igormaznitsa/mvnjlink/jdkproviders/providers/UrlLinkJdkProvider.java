@@ -32,6 +32,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
 
@@ -69,8 +70,13 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
         if (Character.isISOControl(c)) {
           throw new IllegalArgumentException("FIle name must not contain ISO control chars");
         }
-        if (!(Character.isAlphabetic(c) || Character.isDigit(c) || c == '_' || c == '.' ||
-            Character.isWhitespace(c))) {
+        if (!(Character.isAlphabetic(c)
+            || Character.isDigit(c)
+            || c == '-'
+            || c == '_'
+            || c == '+'
+            || c == '.'
+            || Character.isWhitespace(c))) {
           throw new IllegalArgumentException(
               "File name contains non-allowed char '" + c + "': " + name);
         }
@@ -170,6 +176,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
           format(".%s-%s.arch", id, toHexString(id.hashCode()).toUpperCase(
               ENGLISH));
 
+      log.info("Loading URL: " + url);
       result = loadJdkIntoCacheIfNotExist(cacheFolder,
           assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
               downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, url,
@@ -188,7 +195,8 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
     return result;
   }
 
-  protected void downloadAndUnpack(
+  @SafeVarargs
+  protected final void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nullable final String authorization,
       @Nonnull final Path tempFolder,
@@ -216,6 +224,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       doLoadArchive = false;
     }
 
+    String mimeContentType = "unknown";
     if (doLoadArchive) {
       final List<MessageDigest> digests = new ArrayList<>();
       if (sha384checksum != null) {
@@ -238,37 +247,47 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
           this.doHttpGetIntoFile(client, this.tuneRequestBase(authorization), downloadLink,
               pathToArchiveFile, digests, this.mojo.getConnectionTimeout(), allowedMimes);
 
+      mimeContentType =
+          Arrays.stream(responseHeaders).filter(x -> x.getName().equalsIgnoreCase("content-type"))
+              .findFirst()
+              .map(NameValuePair::getValue)
+              .orElse("");
+
+      log.debug("Downloaded file content type: " + mimeContentType);
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-
       if (md2checksum != null) {
-        log.info("Checking MD2 digest");
         assertChecksum(md2checksum, digests, MessageDigestAlgorithms.MD2);
+        log.info("MD2 digest is OK");
       }
 
       if (md5checksum != null) {
-        log.info("Checking MD5 digest");
         assertChecksum(md5checksum, digests, MessageDigestAlgorithms.MD5);
+        log.info("MD5 digest is OK");
       }
 
       if (sha256checksum != null) {
-        log.info("Checking SHA256 digest");
         assertChecksum(sha256checksum, digests, MessageDigestAlgorithms.SHA_256);
+        log.info("SHA256 digest is OK");
       }
 
       if (sha384checksum != null) {
-        log.info("Checking SHA384 digest");
         assertChecksum(sha384checksum, digests, MessageDigestAlgorithms.SHA_384);
+        log.info("SHA384 digest is OK");
       }
 
       if (sha512checksum != null) {
-        log.info("Checking SHA512 digest");
         assertChecksum(sha512checksum, digests, MessageDigestAlgorithms.SHA_512);
+        log.info("SHA512 digest is OK");
       }
       log.info(
-          "Archive has been loaded successfully");
+          "Archive file has been loaded successfully as: " + pathToArchiveFile);
+
+      for (final Consumer<Path> c : loadedArchiveConsumers) {
+        c.accept(pathToArchiveFile);
+      }
     } else {
-      log.info("Archive loading is skipped");
+      log.info("Archive load is skipped");
     }
 
     if (isDirectory(destUnpackFolder)) {
@@ -276,16 +295,17 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       deleteDirectory(destUnpackFolder.toFile());
     }
 
-    for (final Consumer<Path> c : loadedArchiveConsumers) {
-      c.accept(pathToArchiveFile);
-    }
-
     final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
     log.debug("Root archive folder: " + archiveRootName);
     log.info("Unpacking archive...");
     final int numberOfUnpackedFiles =
-        unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
-            archiveRootName);
+        unpackArchiveFile(
+            this.mojo.getLog(),
+            true,
+            pathToArchiveFile,
+            destUnpackFolder,
+            archiveRootName
+        );
     if (numberOfUnpackedFiles == 0) {
       throw new IOException(
           "Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);

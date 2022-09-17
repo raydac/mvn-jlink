@@ -16,9 +16,35 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Stream.of;
+
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.GetUtils;
-import org.apache.http.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -42,26 +68,6 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.protocol.HttpContext;
 import org.apache.maven.plugin.logging.Log;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Stream.of;
 
 public final class HttpUtils {
 
@@ -202,6 +208,15 @@ public final class HttpUtils {
   public static String extractDomainName() {
     final String result = System.getenv("USERDOMAIN");
     return GetUtils.ensureNonNull(result, "");
+  }
+
+  @Nonnull
+  public static HttpClient makeHttpClient(
+      @Nonnull Log logger,
+      @Nullable final ProxySettings proxy,
+      final boolean disableSslCheck
+  ) throws IOException {
+    return makeHttpClient(logger, proxy, x -> x, disableSslCheck);
   }
 
   @Nonnull

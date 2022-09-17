@@ -31,7 +31,6 @@ import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FilenameUtils.normalize;
 import static org.apache.commons.io.IOUtils.copy;
 
-
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -53,6 +52,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.logging.Log;
 
 public final class ArchUtils {
@@ -66,20 +66,22 @@ public final class ArchUtils {
   /**
    * Find shortes directory path in archive
    *
-   * @param archiveFile
-   * @return
-   * @throws IOException
+   * @param archiveFile archive file
+   * @return shortest directory path
+   * @throws IOException if any error
    */
   @Nullable
-  public static final String findShortestDirectory(@Nonnull final Path archiveFile) throws IOException {
-    final String lcArchiveFileName = assertNotNull(archiveFile.getFileName()).toString().toLowerCase(ENGLISH);
+  public static final String findShortestDirectory(@Nonnull final Path archiveFile)
+      throws IOException {
+
+    final String archiveType = findArchiveType(archiveFile);
 
     final ArchEntryGetter entryGetter;
 
     final ZipFile zipFile;
     final ArchiveInputStream archiveInputStream;
 
-    if (lcArchiveFileName.endsWith(".zip")) {
+    if ("zip".equals(archiveType)) {
       zipFile = new ZipFile(archiveFile.toFile());
       archiveInputStream = null;
 
@@ -99,20 +101,23 @@ public final class ArchUtils {
     } else {
       zipFile = null;
       try {
-        if (lcArchiveFileName.endsWith(".tar.gz")) {
-          archiveInputStream = new TarArchiveInputStream(new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
+        if ("tar.gz".equals(archiveType)) {
+          archiveInputStream = new TarArchiveInputStream(
+              new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
             @Override
             public ArchiveEntry getNextEntry() throws IOException {
-              final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) archiveInputStream;
+              final TarArchiveInputStream tarInputStream =
+                  (TarArchiveInputStream) archiveInputStream;
               return tarInputStream.getNextTarEntry();
             }
           };
 
         } else {
-          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(new BufferedInputStream(newInputStream(archiveFile)));
+          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(
+              new BufferedInputStream(newInputStream(archiveFile)));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
@@ -157,6 +162,39 @@ public final class ArchUtils {
     return result;
   }
 
+  @Nonnull
+  public static String findArchiveType(@Nonnull final Path file) {
+    final String fileName = file.getFileName().toString().toLowerCase(ENGLISH);
+
+    if (fileName.endsWith(".zip")) {
+      return "zip";
+    }
+    if (fileName.endsWith("tar.gz")) {
+      return "tar.gz";
+    }
+
+    ZipFile zipFile = null;
+    try {
+      zipFile = new ZipFile(file.toFile());
+      return "zip";
+    } catch (Exception ex) {
+      // do nothing
+    } finally {
+      IOUtils.closeQuietly(zipFile);
+    }
+    TarArchiveInputStream tarGzFile = null;
+    try {
+      tarGzFile = new TarArchiveInputStream(
+          new GZIPInputStream(new BufferedInputStream(newInputStream(file))));
+      return "tar.gz";
+    } catch (Exception ex) {
+      // do nothing
+    } finally {
+      IOUtils.closeQuietly(tarGzFile);
+    }
+    return "unknown";
+  }
+
   /**
    * Unpack whole archive or some its folders into a folder.
    *
@@ -168,16 +206,21 @@ public final class ArchUtils {
    * @return number of extracted files
    * @throws IOException it will be thrown for error in unpack process
    */
-  public static int unpackArchiveFile(@Nonnull final Log logger, final boolean tryMakeExecutable, @Nonnull final Path archiveFile, @Nonnull final Path destinationFolder,
-                                      @Nonnull @MustNotContainNull final String... foldersToUnpack) throws IOException {
-    final String lcArchiveFileName = assertNotNull(archiveFile.getFileName()).toString().toLowerCase(ENGLISH);
-
+  public static int unpackArchiveFile(
+      @Nonnull final Log logger,
+      final boolean tryMakeExecutable,
+      @Nonnull final Path archiveFile,
+      @Nonnull final Path destinationFolder,
+      @Nonnull @MustNotContainNull final String... foldersToUnpack) throws IOException {
     final ArchEntryGetter entryGetter;
 
     final ZipFile zipFile;
     final ArchiveInputStream archiveInputStream;
 
-    if (lcArchiveFileName.endsWith(".zip")) {
+    final String detectedArchiveType = findArchiveType(archiveFile);
+    logger.info("Detected archive type: " + detectedArchiveType);
+
+    if (detectedArchiveType.equals("zip")) {
       logger.debug("Detected ZIP archive");
       zipFile = new ZipFile(archiveFile.toFile());
       archiveInputStream = null;
@@ -198,23 +241,26 @@ public final class ArchUtils {
     } else {
       zipFile = null;
       try {
-        if (lcArchiveFileName.endsWith(".tar.gz")) {
+        if (detectedArchiveType.equals("tar.gz")) {
           logger.debug("Detected TAR.GZ archive");
 
-          archiveInputStream = new TarArchiveInputStream(new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
+          archiveInputStream = new TarArchiveInputStream(
+              new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
             @Override
             public ArchiveEntry getNextEntry() throws IOException {
-              final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) archiveInputStream;
+              final TarArchiveInputStream tarInputStream =
+                  (TarArchiveInputStream) archiveInputStream;
               return tarInputStream.getNextTarEntry();
             }
           };
 
         } else {
           logger.debug("Detected OTHER archive");
-          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(new BufferedInputStream(newInputStream(archiveFile)));
+          archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(
+              new BufferedInputStream(newInputStream(archiveFile)));
           logger.debug("Created archive stream : " + archiveInputStream.getClass().getName());
 
           entryGetter = new ArchEntryGetter() {
@@ -234,7 +280,8 @@ public final class ArchUtils {
     }
 
     try {
-      final List<String> normalizedFolders = of(foldersToUnpack).map(x -> normalize(x, true) + '/').collect(toList());
+      final List<String> normalizedFolders =
+          of(foldersToUnpack).map(x -> normalize(x, true) + '/').collect(toList());
 
       int unpackedFilesCounter = 0;
 
@@ -247,9 +294,12 @@ public final class ArchUtils {
 
         final String normalizedPath = normalize(entry.getName(), true);
 
-        if (normalizedFolders.isEmpty() || normalizedFolders.stream().anyMatch(normalizedPath::startsWith)) {
-          final String normalizedFolder = normalizedFolders.stream().filter(normalizedPath::startsWith).findFirst().orElse("");
-          final Path targetFile = get(destinationFolder.toString(), normalizedPath.substring(normalizedFolder.length()));
+        if (normalizedFolders.isEmpty() ||
+            normalizedFolders.stream().anyMatch(normalizedPath::startsWith)) {
+          final String normalizedFolder =
+              normalizedFolders.stream().filter(normalizedPath::startsWith).findFirst().orElse("");
+          final Path targetFile = get(destinationFolder.toString(),
+              normalizedPath.substring(normalizedFolder.length()));
 
           if (entry.isDirectory()) {
             logger.debug("Folder : " + normalizedPath);
@@ -267,9 +317,11 @@ public final class ArchUtils {
               if (zipFile != null) {
                 logger.debug("Unpacking ZIP entry : " + normalizedPath);
 
-                try (final InputStream zipEntryInStream = zipFile.getInputStream((ZipArchiveEntry) entry)) {
+                try (final InputStream zipEntryInStream = zipFile.getInputStream(
+                    (ZipArchiveEntry) entry)) {
                   if (copy(zipEntryInStream, fos) != entry.getSize()) {
-                    throw new IOException("Can't unpack file, illegal unpacked length : " + entry.getName());
+                    throw new IOException(
+                        "Can't unpack file, illegal unpacked length : " + entry.getName());
                   }
                 }
               } else {
@@ -279,13 +331,15 @@ public final class ArchUtils {
                   throw new IOException("Can't read archive entry data : " + normalizedPath);
                 }
                 if (copy(archiveInputStream, fos) != entry.getSize()) {
-                  throw new IOException("Can't unpack file, illegal unpacked length : " + entry.getName());
+                  throw new IOException(
+                      "Can't unpack file, illegal unpacked length : " + entry.getName());
                 }
               }
             }
 
             if (tryMakeExecutable) {
-              final String name = assertNotNull(targetFile.getFileName()).toString().toLowerCase(ENGLISH);
+              final String name =
+                  assertNotNull(targetFile.getFileName()).toString().toLowerCase(ENGLISH);
               if (Files.size(targetFile) > 0 && (name.endsWith(".bat")
                   || name.endsWith(".cmd")
                   || name.endsWith(".exe")
@@ -312,12 +366,16 @@ public final class ArchUtils {
     }
   }
 
-  private static void postProcessUnpackedArchive(@Nonnull final Log logger, @Nonnull final File unpackFolder) throws IOException {
+  private static void postProcessUnpackedArchive(@Nonnull final Log logger,
+                                                 @Nonnull final File unpackFolder)
+      throws IOException {
     final File[] filesInRoot = unpackFolder.listFiles();
     if (filesInRoot != null
         && filesInRoot.length != 0
-        && stream(filesInRoot).filter(File::isDirectory).anyMatch(x -> "contents".equalsIgnoreCase(x.getName()))) {
-      logger.debug("Detected archive prepared for MacOS, moving its internal JDK folder to the root");
+        && stream(filesInRoot).filter(File::isDirectory)
+        .anyMatch(x -> "contents".equalsIgnoreCase(x.getName()))) {
+      logger.debug(
+          "Detected archive prepared for MacOS, moving its internal JDK folder to the root");
       // it is unpacked mac archive
       final File unpackedHomeFolder = new File(stream(filesInRoot).filter(File::isDirectory)
           .filter(x -> "contents".equalsIgnoreCase(x.getName()))
@@ -326,12 +384,14 @@ public final class ArchUtils {
       if (unpackedHomeFolder.isDirectory()) {
         logger.debug("Found Home folder, copying it as JDK root");
         // rename root
-        final File renamedDestinationFolder = new File(unpackFolder.getParent(), "." + unpackFolder.getName() + "_tmp");
+        final File renamedDestinationFolder =
+            new File(unpackFolder.getParent(), "." + unpackFolder.getName() + "_tmp");
         logger.debug("Renaming file " + unpackFolder + " to " + renamedDestinationFolder);
         if (!unpackFolder.renameTo(renamedDestinationFolder)) {
           throw new IOException("Can't rename " + unpackFolder + " to " + renamedDestinationFolder);
         }
-        final File tempHomeFolder = new File(new File(renamedDestinationFolder, "Contents"), "Home");
+        final File tempHomeFolder =
+            new File(new File(renamedDestinationFolder, "Contents"), "Home");
         logger.debug("Moving folder " + tempHomeFolder + " to " + unpackFolder);
         FileUtils.moveDirectory(tempHomeFolder, unpackFolder);
         FileUtils.deleteDirectory(renamedDestinationFolder);
