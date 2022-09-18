@@ -50,8 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.http.Header;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
@@ -65,8 +65,6 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
   static final String RELEASES_LIST =
       "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases";
-  static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
-
   public GraalVmCeJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
     super(mojo);
   }
@@ -90,7 +88,8 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final String perPage = config.getOrDefault("perPage", "40").trim();
+    final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));
+    final int perPage = ensurePageSizeValue(config.getOrDefault("perPage", "40"));
     final boolean keepArchiveFile =
         Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
@@ -159,19 +158,21 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
         result = loadJdkIntoCacheIfNotExist(cacheFolder,
             assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
                 downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                    keepArchiveFile, loadedArchiveConsumers)
+                    checkArchive, keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
     return result;
   }
 
-  private void downloadAndUnpack(
+  @SafeVarargs
+  private final void downloadAndUnpack(
       @Nonnull final HttpClient client,
       @Nullable final String authorization,
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
+      final boolean check,
       final boolean keepArchiveFile,
       @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
@@ -188,7 +189,7 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
     }
 
     if (doLoadArchive) {
-      final MessageDigest digest = DigestUtils.getMd5Digest();
+      final MessageDigest digest = DigestUtils.getSha256Digest();
       final Header[] responseHeaders = this.doHttpGetIntoFile(
           client,
           this.tuneRequestBase(authorization),
@@ -200,32 +201,38 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
       );
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
+      if (check) {
+        final String sha256link = release.link + ".sha256";
 
-      final String calculatedMd5Digest = Hex.encodeHexString(digest.digest());
-
-      log.info(
-          "Archive has been loaded successfuly, calculated MD5 digest is " + calculatedMd5Digest);
-
-      final Optional<Header> etag =
-          of(responseHeaders).filter(x -> "ETag".equalsIgnoreCase(x.getName())).findFirst();
-
-      if (etag.isPresent()) {
-        final Matcher matcher = ETAG_PATTERN.matcher(etag.get().getValue());
-        if (matcher.find()) {
-          final String extractedEtag = matcher.group(1);
-          if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
-            log.info("Calculated MD5 is equal to the ETag in response");
-          } else {
-            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest +
-                " != " + extractedEtag);
-          }
-        } else {
-          log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
+        final String sha256text;
+        try {
+          log.debug("Loading SHA256 text: " + sha256link);
+          sha256text = this.doHttpGetText(
+              createHttpClient(authorization),
+              this.tuneRequestBase(authorization),
+              sha256link,
+              mojo.getConnectionTimeout(),
+              MIME_TEXT
+          ).trim();
+        } catch (Exception ex) {
+          log.error("Can't find SHA256 for distributive: " + sha256link, ex);
+          throw ex;
         }
+        final StringBuilder buffer = new StringBuilder();
+        for (final char c : sha256text.toCharArray()) {
+          if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+            buffer.append(c);
+          } else {
+            break;
+          }
+        }
+        final String sha256signature = buffer.toString();
+        log.info("Loaded SHA256 for distributive: " + sha256signature);
+        assertChecksum(sha256signature, Collections.singletonList(digest),
+            MessageDigestAlgorithms.SHA_256);
       } else {
-        log.warn("ETag is not presented in the response or its value can't be parsed");
+        log.warn("Archive check skipped");
       }
-
     } else {
       log.info("Archive loading is skipped");
     }
@@ -239,15 +246,15 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
       c.accept(pathToArchiveFile);
     }
 
-    final String archiveRoorName = ArchUtils.findShortestDirectory(pathToArchiveFile);
-    log.debug("Root archive folder: " + archiveRoorName);
+    final String archiveRootName = ArchUtils.findShortestDirectory(pathToArchiveFile);
+    log.debug("Root archive folder: " + archiveRootName);
     log.info("Unpacking archive...");
     final int numberOfUnpackedFiles =
         unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
-            archiveRoorName);
+            archiveRootName);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException(
-          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
+          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRootName);
     }
     log.info(
         "Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");

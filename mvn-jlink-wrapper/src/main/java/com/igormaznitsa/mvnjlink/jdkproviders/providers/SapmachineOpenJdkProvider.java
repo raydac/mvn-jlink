@@ -108,7 +108,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final String perPage = config.getOrDefault("perPage", "40").trim();
+    final int perPage = ensurePageSizeValue(config.getOrDefault("perPage", "40"));
+    final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));
     final boolean keepArchiveFile =
         Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
@@ -179,7 +180,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
         result = loadJdkIntoCacheIfNotExist(cacheFolder,
             assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
                 downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                    keepArchiveFile, loadedArchiveConsumers)
+                    checkArchive, keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -192,6 +193,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
+      final boolean check,
       final boolean keepArchiveFile,
       @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
@@ -217,33 +219,37 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      final String sha256link = replaceExtension(release.link, "sha256.txt");
+      if (check) {
+        final String sha256link = replaceExtension(release.link, "sha256.txt");
 
-      final String sha256text;
-      try {
-        log.debug("Loading SHA256 text: " + sha256link);
-        sha256text = this.doHttpGetText(
-            createHttpClient(authorization),
-            this.tuneRequestBase(authorization),
-            sha256link,
-            mojo.getConnectionTimeout(), MIME_TEXT
-        ).trim();
-      } catch (Exception ex) {
-        log.error("Can't find SHA256 for distributive: " + sha256link, ex);
-        throw ex;
-      }
-      final StringBuilder buffer = new StringBuilder();
-      for (final char c : sha256text.toCharArray()) {
-        if (Character.isDigit(c) || Character.isAlphabetic(c)) {
-          buffer.append(c);
-        } else {
-          break;
+        final String sha256text;
+        try {
+          log.debug("Loading SHA256 text: " + sha256link);
+          sha256text = this.doHttpGetText(
+              createHttpClient(authorization),
+              this.tuneRequestBase(authorization),
+              sha256link,
+              mojo.getConnectionTimeout(), MIME_TEXT
+          ).trim();
+        } catch (Exception ex) {
+          log.error("Can't find SHA256 for distributive: " + sha256link, ex);
+          throw ex;
         }
+        final StringBuilder buffer = new StringBuilder();
+        for (final char c : sha256text.toCharArray()) {
+          if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+            buffer.append(c);
+          } else {
+            break;
+          }
+        }
+        final String sha256signature = buffer.toString();
+        log.info("Loaded SHA256 for distributive: " + sha256signature);
+        assertChecksum(sha256signature, Collections.singletonList(digest),
+            MessageDigestAlgorithms.SHA_256);
+      } else {
+        log.warn("Archive check skipped");
       }
-      final String sha256signature = buffer.toString();
-      log.info("Loaded SHA256 for distributive: " + sha256signature);
-      assertChecksum(sha256signature, Collections.singletonList(digest),
-          MessageDigestAlgorithms.SHA_256);
     } else {
       log.info("Archive loading is skipped");
     }

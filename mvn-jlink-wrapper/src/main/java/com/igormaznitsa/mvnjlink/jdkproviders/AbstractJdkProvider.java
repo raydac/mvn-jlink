@@ -105,6 +105,18 @@ public abstract class AbstractJdkProvider {
     return result.toString();
   }
 
+  protected int ensurePageSizeValue(@Nonnull final String value) {
+    try {
+      final int size = Integer.parseInt(value.trim());
+      if (size <= 0) {
+        throw new IllegalArgumentException("Page size can't be zero or negative one: " + value);
+      }
+      return size;
+    } catch (final NumberFormatException ex) {
+      throw new IllegalArgumentException("Page size must be numeric value: " + value);
+    }
+  }
+
   protected static void assertChecksum(
       @Nonnull final String expected,
       @Nonnull @MustNotContainNull final List<MessageDigest> calculated,
@@ -154,12 +166,14 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nullable
-  protected Function<HttpClientBuilder, HttpClientBuilder> tuneClient(@Nullable final String authorization) {
+  protected Function<HttpClientBuilder, HttpClientBuilder> tuneClient(
+      @Nullable final String authorization) {
     return x -> x;
   }
 
   @Nonnull
-  protected File lockCache(@Nonnull final Path cacheFolder, @Nonnull final String jdkId) throws IOException {
+  protected File lockCache(@Nonnull final Path cacheFolder, @Nonnull final String jdkId)
+      throws IOException {
     final Log log = this.mojo.getLog();
 
     final File lockFile = cacheFolder.resolve(".#" + jdkId).toFile();
@@ -235,7 +249,8 @@ public abstract class AbstractJdkProvider {
     return result.get();
   }
 
-  protected void logRateLimitIfPresented(@Nonnull final String resourceUrl, @Nonnull final HttpResponse response) {
+  protected void logRateLimitIfPresented(@Nonnull final String resourceUrl,
+                                         @Nonnull final HttpResponse response) {
     final Log logger = this.mojo.getLog();
 
     Header rateLimitLimit = response.getFirstHeader("X-RateLimit-Limit");
@@ -253,23 +268,29 @@ public abstract class AbstractJdkProvider {
       rateLimitReset = response.getFirstHeader("X-Rate-Limit-Reset");
     }
 
-    final String rateLimitLimitValue = rateLimitLimit == null ? null : rateLimitLimit.getValue().trim();
-    final String rateLimitRemainingValue = rateLimitRemaining == null ? null : rateLimitRemaining.getValue().trim();
-    final String rateLimitResetValue = rateLimitReset == null ? null : rateLimitReset.getValue().trim();
+    final String rateLimitLimitValue =
+        rateLimitLimit == null ? null : rateLimitLimit.getValue().trim();
+    final String rateLimitRemainingValue =
+        rateLimitRemaining == null ? null : rateLimitRemaining.getValue().trim();
+    final String rateLimitResetValue =
+        rateLimitReset == null ? null : rateLimitReset.getValue().trim();
 
     long rateLimitLimitLong;
     try {
       rateLimitLimitLong = rateLimitLimitValue == null ? -1L : Long.parseLong(rateLimitLimitValue);
     } catch (NumberFormatException ex) {
-      logger.warn(format("Detected unexpected '%s' value in rate limit limit header for '%s'", rateLimitLimitValue, resourceUrl));
+      logger.warn(format("Detected unexpected '%s' value in rate limit limit header for '%s'",
+          rateLimitLimitValue, resourceUrl));
       rateLimitLimitLong = -1L;
     }
 
     long rateLimitRemainingLong;
     try {
-      rateLimitRemainingLong = rateLimitRemainingValue == null ? -1L : Long.parseLong(rateLimitRemainingValue);
+      rateLimitRemainingLong =
+          rateLimitRemainingValue == null ? -1L : Long.parseLong(rateLimitRemainingValue);
     } catch (NumberFormatException ex) {
-      logger.warn(format("Detected unexpected '%s' value in rate limit remaining header for '%s'", rateLimitRemainingValue, resourceUrl));
+      logger.warn(format("Detected unexpected '%s' value in rate limit remaining header for '%s'",
+          rateLimitRemainingValue, resourceUrl));
       rateLimitRemainingLong = -1L;
     }
 
@@ -277,21 +298,29 @@ public abstract class AbstractJdkProvider {
     try {
       rateLimitResetLong = rateLimitResetValue == null ? -1L : Long.parseLong(rateLimitResetValue);
     } catch (NumberFormatException ex) {
-      logger.warn(format("Detected unexpected '%s' value in rate limit reset header for '%s'", rateLimitResetValue, resourceUrl));
+      logger.warn(format("Detected unexpected '%s' value in rate limit reset header for '%s'",
+          rateLimitResetValue, resourceUrl));
       rateLimitResetLong = -1L;
     }
-    logger.debug(format("Resource '%s', limit-remaning=%d, limit-limit=%d, limit-reset=%d", resourceUrl, rateLimitRemainingLong, rateLimitLimitLong, rateLimitResetLong));
+    logger.debug(
+        format("Resource '%s', limit-remaning=%d, limit-limit=%d, limit-reset=%d", resourceUrl,
+            rateLimitRemainingLong, rateLimitLimitLong, rateLimitResetLong));
 
-    final String rateLimitResetDate = rateLimitResetLong < 0L ? "UNKNOWN" : new Date(rateLimitResetLong * 1000L).toString();
+    final String rateLimitResetDate =
+        rateLimitResetLong < 0L ? "UNKNOWN" : new Date(rateLimitResetLong * 1000L).toString();
 
     if (rateLimitRemainingLong < 0L) {
       logger.debug("Rate limit remaining is not provided");
     } else if (rateLimitRemainingLong == 0L) {
-      logger.error(format("Detected zero limit remaining for '%s'! Rate reset expected at '%s'", resourceUrl, rateLimitResetDate));
+      logger.error(
+          format("Detected zero limit remaining for '%s'! Rate reset expected at '%s'", resourceUrl,
+              rateLimitResetDate));
     } else if (rateLimitRemainingLong < 5L) {
-      logger.warn(format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
+      logger.warn(
+          format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
     } else {
-      logger.info(format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
+      logger.info(
+          format("Detected %d limit remaining for '%s'.", rateLimitRemainingLong, resourceUrl));
     }
   }
 
@@ -319,7 +348,8 @@ public abstract class AbstractJdkProvider {
       @Nonnull @MustNotContainNull final String... acceptedContent
   ) throws IOException {
     final Log log = this.mojo.getLog();
-    log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(), connectionRequestTimeout));
+    log.debug(format("Loading %s into file %s, request timeout %d ms", url, targetFile.toString(),
+        connectionRequestTimeout));
 
     Header[] responseHeaders;
 
@@ -338,12 +368,15 @@ public abstract class AbstractJdkProvider {
                 log.debug("Reported content size: " + contentSize + " bytes");
 
                 final int PROGRESSBAR_WIDTH = 10;
-                final String LOADING_TITLE = format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
+                final String LOADING_TITLE =
+                    format("Loading %d Mb ", (contentSize / (1024L * 1024L)));
 
                 showProgress = contentSize > 0L && !this.mojo.getSession().isParallel();
 
                 if (!showProgress) {
-                  log.info(format("Loading file %s, size %d bytes", targetFile.getFileName().toString(), contentSize));
+                  log.info(
+                      format("Loading file %s, size %d bytes", targetFile.getFileName().toString(),
+                          contentSize));
                 }
 
                 long downloadByteCounter = 0L;
@@ -428,7 +461,8 @@ public abstract class AbstractJdkProvider {
         if (tempFolder.toFile().renameTo(resultFolder.toFile())) {
           log.debug("Renamed " + tempFolder.getFileName() + " to " + resultFolder.getFileName());
         } else {
-          log.error("Can't rename " + tempFolder.getFileName() + " to " + resultFolder.getFileName());
+          log.error(
+              "Can't rename " + tempFolder.getFileName() + " to " + resultFolder.getFileName());
           throw new IOException("Can't rename temp folder " + tempFolder + " to " + resultFolder);
         }
       }

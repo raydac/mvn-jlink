@@ -101,7 +101,8 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final String perPage = config.getOrDefault("perPage", "40").trim();
+    final int perPage = ensurePageSizeValue(config.getOrDefault("perPage", "40"));
+    final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));
     final boolean keepArchiveFile =
         Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
@@ -172,7 +173,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
         result = loadJdkIntoCacheIfNotExist(cacheFolder,
             assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
                 downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                    keepArchiveFile, loadedArchiveConsumers)
+                    checkArchive, keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -185,6 +186,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final Path tempFolder,
       @Nonnull final Path destUnpackFolder,
       @Nonnull final ReleaseList.Release release,
+      final boolean check,
       final boolean keepArchiveFile,
       @Nonnull @MustNotContainNull Consumer<Path>... loadedArchiveConsumers
   ) throws IOException {
@@ -214,38 +216,42 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      final String urlSha1File = replaceFileInUrl(release.link, "sha1sum.txt");
-      log.debug("Loading SHA1 file from " + urlSha1File);
+      if (check) {
+        final String urlSha1File = replaceFileInUrl(release.link, "sha1sum.txt");
+        log.debug("Loading SHA1 file from " + urlSha1File);
 
-      final String[] sha1fileLines = doHttpGetText(
-          client,
-          this.tuneRequestBase(authorization),
-          urlSha1File,
-          this.mojo.getConnectionTimeout(), MIME_TEXT).split("\\n");
+        final String[] sha1fileLines = doHttpGetText(
+            client,
+            this.tuneRequestBase(authorization),
+            urlSha1File,
+            this.mojo.getConnectionTimeout(), MIME_TEXT).split("\\n");
 
-      log.info("Downloaded sha1sum.txt file, it contains " + sha1fileLines.length + " lines");
+        log.info("Downloaded sha1sum.txt file, it contains " + sha1fileLines.length + " lines");
 
-      String sha1 = null;
+        String sha1 = null;
 
-      for (final String line : sha1fileLines) {
-        Matcher matcher = PATTERN_SHA1.matcher(line);
-        if (matcher.find()) {
-          final String partSha1 = matcher.group(1);
-          final String partFileName = matcher.group(2);
-          if (partFileName.equals(release.fileName)) {
-            log.debug("sha1sum.txt: " + partSha1 + " " + partFileName);
-            sha1 = partSha1;
-            break;
+        for (final String line : sha1fileLines) {
+          Matcher matcher = PATTERN_SHA1.matcher(line);
+          if (matcher.find()) {
+            final String partSha1 = matcher.group(1);
+            final String partFileName = matcher.group(2);
+            if (partFileName.equals(release.fileName)) {
+              log.debug("sha1sum.txt: " + partSha1 + " " + partFileName);
+              sha1 = partSha1;
+              break;
+            }
           }
         }
-      }
 
-      if (sha1 == null) {
-        throw new IOException(
-            "Can't find SHA1 in sha1sum.txt (" + urlSha1File + ") for file " + release.fileName);
+        if (sha1 == null) {
+          throw new IOException(
+              "Can't find SHA1 in sha1sum.txt (" + urlSha1File + ") for file " + release.fileName);
+        }
+        assertChecksum(sha1, Collections.singletonList(digest), MessageDigestAlgorithms.SHA_1);
+        log.info("SHA1 is OK");
+      } else {
+        log.warn("Archive check skipped");
       }
-      assertChecksum(sha1, Collections.singletonList(digest), MessageDigestAlgorithms.SHA_1);
-      log.info("SHA1 is OK");
     } else {
       log.info("Archive loading is skipped");
     }

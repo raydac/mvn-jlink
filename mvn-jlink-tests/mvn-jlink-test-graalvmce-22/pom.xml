@@ -9,7 +9,7 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-graalvmce</artifactId>
+    <artifactId>mvn-jlink-test-graalvmce-19</artifactId>
     <packaging>jar</packaging>
 
     <build>
@@ -42,8 +42,8 @@
                         <configuration>
                             <provider>GRAALVMCE</provider>
                             <providerConfig>
-                                <type>java11</type>
-                                <version>19.3.1</version>
+                                <type>java17</type>
+                                <version>22.2.0</version>
                                 <arch>amd64</arch>
                             </providerConfig>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
