@@ -37,9 +37,8 @@
                     <verbose>true</verbose>
                     <executable>${jlink.javac.path}</executable>
                     <fork>true</fork>
-                    <source>15</source>
-                    <target>15</target>
-                    <compilerArgument>--enable-preview</compilerArgument>
+                    <source>19</source>
+                    <target>19</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -70,11 +69,11 @@
                         <configuration>
                             <provider>ADOPTIUM</provider>
                             <providerConfig>
-                                <repositoryName>temurin19-binaries</repositoryName>
+                                <version>19u</version>
                                 <arch>x64</arch>
                                 <type>jdk</type>
                                 <impl>hotspot</impl>
-                                <build>2022-05-31-14-44</build>
+                                <build>2022-09-13-11-28</build>
                             </providerConfig>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>
                             <jdkPathProperty>jlink.jdk.path</jdkPathProperty>

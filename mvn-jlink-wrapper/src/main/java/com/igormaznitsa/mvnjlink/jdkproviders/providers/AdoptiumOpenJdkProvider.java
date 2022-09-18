@@ -71,6 +71,19 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
   }
 
   @Nonnull
+  private static String getRawVersion(@Nonnull final String version) {
+    final StringBuilder result = new StringBuilder();
+    for (final char c : version.trim().toCharArray()) {
+      if (Character.isDigit(c)) {
+        result.append(c);
+      } else {
+        break;
+      }
+    }
+    return result.toString();
+  }
+
+  @Nonnull
   @Override
   public Path getPathToJdk(
       @Nullable final String authorization,
@@ -79,14 +92,15 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
   ) throws IOException {
     final Log log = this.mojo.getLog();
 
-    assertParameters(config, "repositoryName", "arch", "type", "impl", "build");
+    assertParameters(config, "version", "arch", "type", "impl", "build");
 
     final String defaultOs = findCurrentOs("macos");
 
     log.debug("Default OS recognized as: " + defaultOs);
 
-    final String gitRepositoryName = config.get("repositoryName");
-    final String jdkVersion = config.getOrDefault("version", "");
+    final String jdkVersion = config.get("version").toUpperCase(ENGLISH);
+    final String gitRepositoryName =
+        config.getOrDefault("repositoryName", "temurin" + getRawVersion(jdkVersion) + "-binaries");
     final String build = config.get("build");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
@@ -122,6 +136,8 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
       } else {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
+
+      log.info("Source GIT repository: " + gitRepositoryName);
 
       final HttpClient httpClient =
           HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization),
@@ -284,10 +300,6 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
     private ReleaseList() {
     }
 
-    public void add(@Nonnull final ReleaseList list) {
-      this.releases.addAll(list.releases);
-    }
-
     private ReleaseList(@Nonnull final Log log, @Nonnull final String json) {
       final JSONArray array = new JSONArray(json);
       for (int i = 0; i < array.length(); i++) {
@@ -323,6 +335,10 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
           }
         }
       }
+    }
+
+    public void add(@Nonnull final ReleaseList list) {
+      this.releases.addAll(list.releases);
     }
 
     public boolean isEmpty() {

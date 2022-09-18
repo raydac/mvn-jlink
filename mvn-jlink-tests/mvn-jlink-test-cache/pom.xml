@@ -40,9 +40,11 @@
                             <goal>cache-jdk</goal>
                         </goals>
                         <configuration>
-                            <provider>ADOPT</provider>
+                            <provider>ADOPTIUM</provider>
                             <providerConfig>
-                                <release>jdk8u192-b12</release>
+                                <repositoryName>temurin8-binaries</repositoryName>
+                                <version>8U</version>
+                                <build>2021-06-12-02-40</build>
                                 <arch>x64</arch>
                                 <type>jdk</type>
                                 <os>linux</os>

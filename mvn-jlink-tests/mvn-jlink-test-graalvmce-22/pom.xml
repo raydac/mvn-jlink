@@ -9,7 +9,7 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mvn-jlink-test-graalvmce-19</artifactId>
+    <artifactId>mvn-jlink-test-graalvmce-22</artifactId>
     <packaging>jar</packaging>
 
     <build>
