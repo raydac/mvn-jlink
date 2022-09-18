@@ -104,6 +104,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
     final String md5 = config.get("md5");
     final String md2 = config.get("md2");
     final String mimes = config.get("mime");
+    final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));
 
     final String[] allowedMimes = mimes == null ? MIMES : mimes.split(",");
     for (int i = 0; i < allowedMimes.length; i++) {
@@ -140,8 +141,14 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       log.info("Loading URL: " + url);
       result = loadJdkIntoCacheIfNotExist(cacheFolder,
           assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-              downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, url,
+              downloadAndUnpack(
+                  httpClient,
+                  authorization,
+                  cacheFolder,
+                  tempFolder,
+                  url,
                   archiveFileName,
+                  checkArchive,
                   sha1,
                   sha256,
                   sha384,
@@ -165,6 +172,7 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       @Nonnull final Path destUnpackFolder,
       @Nonnull final String downloadLink,
       @Nonnull final String archiveFileName,
+      final boolean checkArchive,
       @Nullable final String sha1checksum,
       @Nullable final String sha256checksum,
       @Nullable final String sha384checksum,
@@ -222,38 +230,41 @@ public class UrlLinkJdkProvider extends AbstractJdkProvider {
       log.debug("Downloaded file content type: " + mimeContentType);
       log.debug("Response headers: " + Arrays.toString(responseHeaders));
 
-      if (sha1checksum != null) {
-        assertChecksum(sha1checksum, digests, MessageDigestAlgorithms.SHA_1);
-        log.info("SHA1 digest is OK");
-      }
+      if (checkArchive) {
+        if (sha1checksum != null) {
+          assertChecksum(sha1checksum, digests, MessageDigestAlgorithms.SHA_1);
+          log.info("SHA1 digest is OK");
+        }
 
-      if (md2checksum != null) {
-        assertChecksum(md2checksum, digests, MessageDigestAlgorithms.MD2);
-        log.info("MD2 digest is OK");
-      }
+        if (md2checksum != null) {
+          assertChecksum(md2checksum, digests, MessageDigestAlgorithms.MD2);
+          log.info("MD2 digest is OK");
+        }
 
-      if (md5checksum != null) {
-        assertChecksum(md5checksum, digests, MessageDigestAlgorithms.MD5);
-        log.info("MD5 digest is OK");
-      }
+        if (md5checksum != null) {
+          assertChecksum(md5checksum, digests, MessageDigestAlgorithms.MD5);
+          log.info("MD5 digest is OK");
+        }
 
-      if (sha256checksum != null) {
-        assertChecksum(sha256checksum, digests, MessageDigestAlgorithms.SHA_256);
-        log.info("SHA256 digest is OK");
-      }
+        if (sha256checksum != null) {
+          assertChecksum(sha256checksum, digests, MessageDigestAlgorithms.SHA_256);
+          log.info("SHA256 digest is OK");
+        }
 
-      if (sha384checksum != null) {
-        assertChecksum(sha384checksum, digests, MessageDigestAlgorithms.SHA_384);
-        log.info("SHA384 digest is OK");
-      }
+        if (sha384checksum != null) {
+          assertChecksum(sha384checksum, digests, MessageDigestAlgorithms.SHA_384);
+          log.info("SHA384 digest is OK");
+        }
 
-      if (sha512checksum != null) {
-        assertChecksum(sha512checksum, digests, MessageDigestAlgorithms.SHA_512);
-        log.info("SHA512 digest is OK");
+        if (sha512checksum != null) {
+          assertChecksum(sha512checksum, digests, MessageDigestAlgorithms.SHA_512);
+          log.info("SHA512 digest is OK");
+        }
+        log.info(
+            "Archive file has been loaded successfully as: " + pathToArchiveFile);
+      } else {
+        log.warn("Archive check skipped");
       }
-      log.info(
-          "Archive file has been loaded successfully as: " + pathToArchiveFile);
-
       for (final Consumer<Path> c : loadedArchiveConsumers) {
         c.accept(pathToArchiveFile);
       }
