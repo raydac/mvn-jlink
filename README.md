@@ -5,7 +5,7 @@
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
 
-![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo.png)   
+![logo](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/logo-git.png)
 
 # Changelog
 
