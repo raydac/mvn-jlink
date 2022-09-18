@@ -25,6 +25,7 @@
         <module>mvn-jlink-test-graalvmce-19</module>
         <module>mvn-jlink-test-graalvmce-22</module>
         <module>mvn-jlink-test-microsoft</module>
+        <module>mvn-jlink-test-url</module>
     </modules>
 
     <properties>
