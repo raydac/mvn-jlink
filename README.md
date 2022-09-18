@@ -12,7 +12,7 @@
 __1.2.0 (18-sep-2022)__
 
 - added digest download and check for Git based providers
-- __removed ADOPT and ADOPTGIT providers__
+- __removed ADOPT and ADOPTGIT providers, now they covered by new ADOPTIUM provider__
 - __added MICROSOFT OpenJDK provider__
 - __added URL provider to use direct URL__
 - refactoring
