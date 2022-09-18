@@ -63,7 +63,8 @@ import org.json.JSONObject;
  */
 public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
-  static final String RELEASES_LIST = "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases";
+  static final String RELEASES_LIST =
+      "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases";
   static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
 
   public GraalVmCeJdkProvider(@Nonnull final AbstractJdkToolMojo mojo) {
@@ -89,7 +90,9 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
-    final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
+    final String perPage = config.getOrDefault("perPage", "40").trim();
+    final boolean keepArchiveFile =
+        Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final Path cacheFolder = this.mojo.findJdkCacheFolder();
     final Path cachedJdkPath = cacheFolder.resolve(String.format("GRAALVMCE_%s_%s_%s_%s",
@@ -106,12 +109,15 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
       result = cachedJdkPath;
     } else {
       if (isOfflineMode()) {
-        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() + "' is not found, stopping process because offline mode is active");
+        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() +
+            "' is not found, stopping process because offline mode is active");
       } else {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient =
+          HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization),
+              this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> releases = Collections.emptyList();
@@ -122,7 +128,8 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
         final ReleaseList pageReleases = new ReleaseList(log,
             doHttpGetText(httpClient, this.tuneRequestBase(authorization),
-                RELEASES_LIST + "?per_page=40&page=" + page, this.mojo.getConnectionTimeout(),
+                RELEASES_LIST + "?per_page=" + perPage + "&page=" + page,
+                this.mojo.getConnectionTimeout(),
                 "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkType, jdkVersion, jdkOs, jdkArch);
@@ -136,17 +143,23 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
       if (releases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());
-        throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
+        throw new IOException(
+            String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'",
+                jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
         log.debug("Found releases: " + releases);
 
-        final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
-        final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> tarRelease =
+            releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> zipRelease =
+            releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
-        final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                keepArchiveFile, loadedArchiveConsumers)
+        final ReleaseList.Release releaseToLoad =
+            of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
+        result = loadJdkIntoCacheIfNotExist(cacheFolder,
+            assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
+                downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
+                    keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -203,7 +216,8 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
           if (calculatedMd5Digest.equalsIgnoreCase(extractedEtag)) {
             log.info("Calculated MD5 is equal to the ETag in response");
           } else {
-            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest + " != " + extractedEtag);
+            log.warn("Calculated MD5 is not equal to the ETag in response: " + calculatedMd5Digest +
+                " != " + extractedEtag);
           }
         } else {
           log.error("Can't extract MD5 from ETag: " + etag.get().getValue());
@@ -298,7 +312,8 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
     @Nonnull
     @MustNotContainNull
-    public List<Release> find(@Nonnull final String type, @Nonnull final String version, @Nonnull final String os, @Nonnull final String arch) {
+    public List<Release> find(@Nonnull final String type, @Nonnull final String version,
+                              @Nonnull final String os, @Nonnull final String arch) {
       final WildCardMatcher matcher = new WildCardMatcher(version, true);
       return this.releases.stream()
           .filter(x -> x.type.equalsIgnoreCase(type))
@@ -314,7 +329,9 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
     static class Release {
 
-      static final Pattern GRAALVMCE_FILENAME_PATTERN = Pattern.compile("^graalvm-ce-([a-z.0-9+]+)-([a-z]+)-([a-z\\d]+)-([\\d.]+\\d).([\\D.]+)$", Pattern.CASE_INSENSITIVE);
+      static final Pattern GRAALVMCE_FILENAME_PATTERN =
+          Pattern.compile("^graalvm-ce-([a-z.0-9+]+)-([a-z]+)-([a-z\\d]+)-([\\d.]+\\d).([\\D.]+)$",
+              Pattern.CASE_INSENSITIVE);
 
       private final String type;
       private final String version;
@@ -351,7 +368,8 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
       @Nonnull
       @Override
       public String toString() {
-        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']", this.type, this.version, this.os, this.arch, this.extension);
+        return String.format("Release[type='%s',version='%s',os='%s',arch='%s',ext='%s']",
+            this.type, this.version, this.os, this.arch, this.extension);
       }
     }
   }

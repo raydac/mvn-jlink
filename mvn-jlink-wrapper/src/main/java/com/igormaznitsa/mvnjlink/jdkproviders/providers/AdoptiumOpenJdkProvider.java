@@ -92,7 +92,9 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
     final String jdkArch = config.get("arch");
     final String jdkType = config.get("type");
     final String jdkImpl = config.get("impl");
-    final boolean keepArchiveFile = Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
+    final String perPage = config.getOrDefault("perPage", "40").trim();
+    final boolean keepArchiveFile =
+        Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
     final String cachedJdkFolderName = String.format(
         "ADOPTIUM_%s_%s_%s_%s_%s",
@@ -114,12 +116,15 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
       result = cachedJdkPath;
     } else {
       if (isOfflineMode()) {
-        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() + "' is not found, stopping process because offline mode is active");
+        throw new FailureException("Unpacked '" + cachedJdkPath.getFileName() +
+            "' is not found, stopping process because offline mode is active");
       } else {
         log.info("Can't find cached: " + cachedJdkPath.getFileName());
       }
 
-      final HttpClient httpClient = HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization), this.mojo.isDisableSSLcheck());
+      final HttpClient httpClient =
+          HttpUtils.makeHttpClient(log, this.mojo.getProxy(), this.tuneClient(authorization),
+              this.mojo.isDisableSSLcheck());
 
       final ReleaseList releaseList = new ReleaseList();
       List<ReleaseList.Release> releases = Collections.emptyList();
@@ -129,10 +134,12 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
         log.debug("Loading releases page: " + page);
 
         final String pageUrl =
-            String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=20&page=" + page;
+            String.format(RELEASES_LIST_TEMPLATE, gitRepositoryName) + "?per_page=" + perPage +
+                "&page=" + page;
         log.debug("Page url: " + pageUrl);
-        final ReleaseList pageReleases = new ReleaseList(log, doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl,
-            this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
+        final ReleaseList pageReleases = new ReleaseList(log,
+            doHttpGetText(httpClient, this.tuneRequestBase(authorization), pageUrl,
+                this.mojo.getConnectionTimeout(), "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
         releases = releaseList.find(jdkVersion, jdkType, jdkArch, jdkOs, jdkImpl, build);
 
@@ -145,17 +152,23 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
 
       if (releases.isEmpty()) {
         log.warn("Found releases\n" + releaseList.makeReport());
-        throw new IOException(String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'", jdkVersion, jdkType, jdkOs, jdkArch));
+        throw new IOException(
+            String.format("Can't find release for version='%s', type='%s', os='%s', arch='%s'",
+                jdkVersion, jdkType, jdkOs, jdkArch));
       } else {
         log.debug("Found releases: " + releases);
 
-        final Optional<ReleaseList.Release> tarRelease = releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
-        final Optional<ReleaseList.Release> zipRelease = releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> tarRelease =
+            releases.stream().filter(x -> "tar.gz".equalsIgnoreCase(x.extension)).findFirst();
+        final Optional<ReleaseList.Release> zipRelease =
+            releases.stream().filter(x -> "zip".equalsIgnoreCase(x.extension)).findFirst();
 
-        final ReleaseList.Release releaseToLoad = of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
-        result = loadJdkIntoCacheIfNotExist(cacheFolder, assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
-            downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
-                keepArchiveFile, loadedArchiveConsumers)
+        final ReleaseList.Release releaseToLoad =
+            of(tarRelease, zipRelease).filter(Optional::isPresent).findFirst().get().get();
+        result = loadJdkIntoCacheIfNotExist(cacheFolder,
+            assertNotNull(cachedJdkPath.getFileName()).toString(), tempFolder ->
+                downloadAndUnpack(httpClient, authorization, cacheFolder, tempFolder, releaseToLoad,
+                    keepArchiveFile, loadedArchiveConsumers)
         );
       }
     }
@@ -245,9 +258,11 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
         unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
             archiveRoorName);
     if (numberOfUnpackedFiles == 0) {
-      throw new IOException("Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
+      throw new IOException(
+          "Extracted 0 files from archive! May be wrong root folder name: " + archiveRoorName);
     }
-    log.info("Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
+    log.info(
+        "Archive has been unpacked successfully, extracted " + numberOfUnpackedFiles + " files");
 
     if (keepArchiveFile) {
       log.info("Keep downloaded archive file in cache: " + pathToArchiveFile);
@@ -333,7 +348,9 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
 
     private static class Release {
 
-      private static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile("^OpenJDK([\\da-z]*)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z_]+)_([\\-a-zA-Z0-9]+).(.+)$", Pattern.CASE_INSENSITIVE);
+      private static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile(
+          "^OpenJDK([\\da-z]*)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z_]+)_([\\-a-zA-Z0-9]+).(.+)$",
+          Pattern.CASE_INSENSITIVE);
 
       private final String version;
       private final String type;

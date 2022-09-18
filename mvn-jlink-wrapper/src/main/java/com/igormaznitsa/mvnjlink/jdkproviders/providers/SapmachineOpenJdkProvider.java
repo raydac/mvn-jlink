@@ -108,6 +108,7 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
     final String jdkVersion = config.get("version");
     final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
     final String jdkArch = config.get("arch");
+    final String perPage = config.getOrDefault("perPage", "40").trim();
     final boolean keepArchiveFile =
         Boolean.parseBoolean(config.getOrDefault("keepArchive", "false"));
 
@@ -145,7 +146,8 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
         final ReleaseList pageReleases = new ReleaseList(log,
             doHttpGetText(httpClient, this.tuneRequestBase(authorization),
-                RELEASES_LIST + "?per_page=100&page=" + page, this.mojo.getConnectionTimeout(),
+                RELEASES_LIST + "?per_page=" + perPage + "&page=" + page,
+                this.mojo.getConnectionTimeout(),
                 "application/vnd.github.v3+json"));
         releaseList.add(pageReleases);
 
