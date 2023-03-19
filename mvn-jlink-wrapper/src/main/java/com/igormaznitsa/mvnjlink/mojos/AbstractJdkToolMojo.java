@@ -59,14 +59,14 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   /**
    * Disable loading and use only cached JDKs.
-   * Can be overriden by property 'mvn.jlink.use.only.cache'
+   * Can be overridden by property 'mvn.jlink.use.only.cache'
    */
   @Parameter(defaultValue = "false", name = "useOnlyCache")
   private boolean useOnlyCache;
 
   /**
    * Path to JDK cache folder.
-   * Can be overriden by property 'mvn.jlink.jdk.cache.path'
+   * Can be overridden by property 'mvn.jlink.jdk.cache.path'
    */
   @Parameter(defaultValue = "${user.home}${file.separator}.mvnJlinkCache", name = "jdkCachePath")
   private String jdkCachePath = System.getProperty("user.home") + File.separator + ".mvnJlinkJdkCache";
@@ -79,7 +79,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   /**
    * Skip processing of the mojo.
-   * Can be overriden by property 'mvn.jlink.skip'
+   * Can be overridden by property 'mvn.jlink.skip'
    */
   @Parameter(name = "skip", defaultValue = "false")
   private boolean skip;
@@ -94,14 +94,14 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   /**
    * Disable SSL check during network operations.
-   * Can be overriden by 'mvn.jlink.disable.ssl.check'
+   * Can be overridden by 'mvn.jlink.disable.ssl.check'
    */
   @Parameter(name = "disableSSLcheck", defaultValue = "false")
   private boolean disableSSLcheck;
 
   /**
    * Define connection timeout for HTTP requests in milliseconds.
-   * Can be overriden by property 'mvn.jlink.connection.timeout'
+   * Can be overridden by property 'mvn.jlink.connection.timeout'
    *
    * @since 1.0.2
    */
@@ -128,7 +128,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   /**
    * Path to JDK which tools will be used.
-   * Can be overriden by property 'mvn.jlink.tool.jdk'
+   * Can be overridden by property 'mvn.jlink.tool.jdk'
    */
   @Parameter(name = "toolJdk")
   private String toolJdk = null;
