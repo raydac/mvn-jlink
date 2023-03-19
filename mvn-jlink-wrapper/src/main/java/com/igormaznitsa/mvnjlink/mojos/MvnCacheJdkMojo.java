@@ -16,9 +16,9 @@
 
 package com.igormaznitsa.mvnjlink.mojos;
 
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.match;
 import static java.nio.file.Files.walk;
 import static java.util.stream.Collectors.toMap;
-
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -31,7 +31,6 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.codehaus.plexus.util.SelectorUtils;
 
 /**
  * Allows to download JDK from provider into cache and save path of cached JDK folder into project property.
@@ -73,7 +72,8 @@ public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
     final Path jdkPath = this.getSourceJdkFolderFromProvider();
     this.getLog().info("cached JDK path: " + jdkPath);
     this.getProject().getProperties().setProperty(this.getJdkPathProperty(), jdkPath.toString());
-    this.getLog().info(String.format("Project property '%s' <= '%s'", this.getJdkPathProperty(), jdkPath.toString()));
+    this.getLog().info(String.format("Project property '%s' <= '%s'", this.getJdkPathProperty(),
+        jdkPath.toString()));
 
     if (this.pathAsProperty != null && !this.pathAsProperty.isEmpty()) {
       final Map<String, Path> found = findForPatterns(jdkPath, this.pathAsProperty);
@@ -83,17 +83,23 @@ public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
             this.getLog().error("Can't find any file for pattern: " + f.getKey());
           }
         }
-        throw new MojoExecutionException("Can't find some files in JDK for path patterns, see log!");
+        throw new MojoExecutionException(
+            "Can't find some files in JDK for path patterns, see log!");
       }
       for (final Map.Entry<String, Path> f : found.entrySet()) {
-        this.getLog().info(String.format("Project property '%s' <= '%s' (pattern: %s)", f.getKey(), jdkPath.relativize(f.getValue()).toString(), this.pathAsProperty.get(f.getKey())));
-        this.getProject().getProperties().setProperty(f.getKey(), f.getValue().toAbsolutePath().toString());
+        this.getLog().info(String.format("Project property '%s' <= '%s' (pattern: %s)", f.getKey(),
+            jdkPath.relativize(f.getValue()).toString(), this.pathAsProperty.get(f.getKey())));
+        this.getProject().getProperties()
+            .setProperty(f.getKey(), f.getValue().toAbsolutePath().toString());
       }
     }
   }
 
   @Nonnull
-  private Map<String, Path> findForPatterns(@Nonnull final Path rootFolder, @Nonnull final Map<String, String> patterns) throws MojoExecutionException {
+  private Map<String, Path> findForPatterns(
+      @Nonnull final Path rootFolder,
+      @Nonnull final Map<String, String> patterns
+  ) throws MojoExecutionException {
     final Map<String, Path> result = new HashMap<>();
     final Map<String, String> normalized = patterns.entrySet().stream()
         .collect(toMap(Map.Entry::getKey,
@@ -105,7 +111,7 @@ public class MvnCacheJdkMojo extends AbstractJdkToolMojo {
           final String propertyName = e.getKey();
           final String pattern = e.getValue();
           final Path absolutePath = rootFolder.resolve(x).toAbsolutePath();
-          if (SelectorUtils.match(pattern, absolutePath.toString())) {
+          if (match(pattern.toCharArray(), absolutePath.toString().toCharArray(), true)) {
             result.put(propertyName, x);
             break;
           }

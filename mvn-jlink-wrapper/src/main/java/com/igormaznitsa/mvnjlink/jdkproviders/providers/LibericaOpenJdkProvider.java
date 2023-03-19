@@ -32,6 +32,7 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
@@ -93,13 +94,13 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
 
     assertParameters(config, "type", "version", "arch");
 
-    final String defaultOs = findCurrentOs("macos");
+    final HostOs defaultOs = findCurrentOs(HostOs.LINUX);
 
     log.debug("Default OS recognized as: " + defaultOs);
 
     final String jdkType = config.get("type");
     final String jdkVersion = config.get("version");
-    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
+    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs.getId());
     final String jdkArch = config.get("arch");
     final int perPage = ensurePageSizeValue(config.getOrDefault("perPage", "40"));
     final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));

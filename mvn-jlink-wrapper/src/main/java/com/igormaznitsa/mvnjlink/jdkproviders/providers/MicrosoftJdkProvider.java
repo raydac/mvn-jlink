@@ -2,10 +2,10 @@ package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import javax.annotation.Nonnull;
@@ -22,8 +22,8 @@ public class MicrosoftJdkProvider extends UrlLinkJdkProvider {
 
   @Nonnull
   private String findAppropriateExtension() {
-    final String os = this.findCurrentOs("macos");
-    if (os.toLowerCase(Locale.ENGLISH).contains("windows")) {
+    final HostOs os = this.findCurrentOs(HostOs.LINUX);
+    if (os == HostOs.WINDOWS) {
       return "zip";
     } else {
       return "tar.gz";
@@ -42,7 +42,11 @@ public class MicrosoftJdkProvider extends UrlLinkJdkProvider {
 
     final String jdkType = config.getOrDefault("type", "jdk");
     final String jdkVersion = config.getOrDefault("version", "17.0.4.1");
-    final String jdkOs = config.getOrDefault("os", findCurrentOs("macOs"));
+
+    final HostOs hostOs = findCurrentOs(HostOs.LINUX);
+
+    final String jdkOs = config.getOrDefault("os",
+        (hostOs == HostOs.MAC || hostOs == HostOs.MAC_OSX ? "macOs" : hostOs.getId()));
     final String jdkArch = config.getOrDefault("arch", "x64");
     final String jdkExtension = config.getOrDefault("extension", this.findAppropriateExtension());
     final String sha256 = config.getOrDefault("sha256", null);

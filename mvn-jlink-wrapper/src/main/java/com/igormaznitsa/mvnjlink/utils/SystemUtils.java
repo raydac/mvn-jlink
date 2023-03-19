@@ -16,16 +16,18 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
-import org.apache.maven.plugin.logging.Log;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import java.io.Closeable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import static java.nio.file.Files.isDirectory;
-import static java.nio.file.Files.isRegularFile;
+import java.util.Locale;
+import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.maven.plugin.logging.Log;
 
 public final class SystemUtils {
   private SystemUtils() {
@@ -33,7 +35,13 @@ public final class SystemUtils {
   }
 
   @Nullable
-  public static Path findJdkExecutable(@Nonnull final Log log, @Nonnull final Path jdkFolder, @Nonnull final String jdkExecutableFileName) {
+  public static Path findJdkExecutable(
+      @Nonnull final Log log,
+      @Nonnull final Path jdkFolder,
+      @Nonnull final String jdkExecutableFileName,
+      @Nonnull final HostOs hostOs,
+      @Nonnull @MustNotContainNull final Map<HostOs, String> forceExtensions
+  ) {
     Path binFolder = jdkFolder.resolve("bin");
     if (isDirectory(binFolder)) {
       log.debug("Detected JDK bin folder: " + binFolder);
@@ -48,7 +56,8 @@ public final class SystemUtils {
       }
     }
 
-    Path result = binFolder.resolve(ensureOsExtension(jdkExecutableFileName));
+    Path result = binFolder.resolve(
+        addHostFileExtensionIfNeeded(jdkExecutableFileName, hostOs, forceExtensions));
     if (!isRegularFile(result)) {
       log.error("Can't find file: " + result);
       result = null;
@@ -59,31 +68,36 @@ public final class SystemUtils {
     return result;
   }
 
-  @Nullable
-  public static String ensureOsExtension(@Nullable final String text) {
+  @Nonnull
+  public static String addHostFileExtensionIfNeeded(
+      @Nonnull final String fileName,
+      @Nonnull final HostOs hostOs,
+      @Nonnull @MustNotContainNull final Map<HostOs, String> forceExtensions
+  ) {
     final String result;
-    if (text == null) {
-      result = null;
+    final String extension = forceExtensions.getOrDefault(hostOs, hostOs.getDefaultExtension());
+    if (extension.isEmpty() || fileName.contains(".")) {
+      result = fileName;
     } else {
-      if (org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS) {
-        if (!text.endsWith(".exe")) {
-          result = text + ".exe";
-        } else {
-          result = text;
-        }
+      if (fileName.toLowerCase(Locale.ENGLISH)
+          .endsWith(('.' + extension).toLowerCase(Locale.ENGLISH))) {
+        result = fileName;
       } else {
-        result = text;
+        result = fileName + '.' + extension;
       }
     }
     return result;
   }
 
-  public static void closeCloseable(@Nullable final Closeable closeable, @Nullable final Log logger) {
+  public static void closeCloseable(@Nullable final Closeable closeable,
+                                    @Nullable final Log logger) {
     if (closeable != null) {
       try {
         closeable.close();
       } catch (Exception ex) {
-        if (logger!=null) logger.debug("Can't close closeable object: " + closeable, ex);
+        if (logger != null) {
+          logger.debug("Can't close closeable object: " + closeable, ex);
+        }
       }
     }
   }

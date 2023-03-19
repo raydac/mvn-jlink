@@ -29,6 +29,7 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.meta.common.utils.Assertions;
 import com.igormaznitsa.mvnjlink.exceptions.IORuntimeWrapperException;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import java.io.File;
@@ -45,11 +46,9 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -61,7 +60,6 @@ import org.apache.maven.plugin.logging.Log;
 
 public abstract class AbstractJdkProvider {
 
-  protected static final Pattern ETAG_PATTERN = Pattern.compile("^\"?([a-fA-F0-9]{32}).*\"?$");
   protected static final String[] MIME_TEXT =
       new String[] {"text/plain", "application/octet-stream"};
   protected final AbstractJdkToolMojo mojo;
@@ -208,24 +206,9 @@ public abstract class AbstractJdkProvider {
   }
 
   @Nonnull
-  protected String findCurrentOs(@Nonnull final String macOsId) {
-    final String defaultOs;
-    if (SystemUtils.IS_OS_MAC) {
-      defaultOs = macOsId;
-    } else if (SystemUtils.IS_OS_WINDOWS) {
-      defaultOs = "windows";
-    } else if (SystemUtils.IS_OS_AIX) {
-      defaultOs = "aix";
-    } else if (SystemUtils.IS_OS_FREE_BSD) {
-      defaultOs = "freebsd";
-    } else if (SystemUtils.IS_OS_IRIX) {
-      defaultOs = "irix";
-    } else if (SystemUtils.IS_OS_ZOS) {
-      defaultOs = "zos";
-    } else {
-      defaultOs = "linux";
-    }
-    return defaultOs;
+  protected HostOs findCurrentOs(@Nonnull final HostOs defaultHostOs) {
+    final HostOs hostOs = HostOs.findHostOs();
+    return hostOs == HostOs.UNKNOWN ? defaultHostOs : hostOs;
   }
 
   @Nonnull

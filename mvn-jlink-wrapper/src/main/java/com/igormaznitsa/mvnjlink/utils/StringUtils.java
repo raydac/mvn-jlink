@@ -16,18 +16,17 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
-import com.igormaznitsa.meta.annotation.MustNotContainNull;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.util.regex.Pattern.compile;
 
-import javax.annotation.Nonnull;
+import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-import static java.util.regex.Pattern.compile;
+import javax.annotation.Nonnull;
 
 public final class StringUtils {
   private static final Pattern PATTERN_MODULE_LINE = compile("^(.*)->(.*)$");
@@ -77,13 +76,16 @@ public final class StringUtils {
     }
   }
 
-  public static int printTextProgress(@Nonnull final String text, final long value, final long maxValue, final int progressBarWidth, final int lastValue) {
+  public static int printTextProgress(@Nonnull final String text, final long value,
+                                      final long maxValue, final int progressBarWidth,
+                                      final int lastValue) {
     final StringBuilder builder = new StringBuilder();
     builder.append("\r\u001B[?25l");
     builder.append(text);
     builder.append("[");
 
-    final int progress = max(0, min(progressBarWidth, (int) Math.round(progressBarWidth * ((double) value / (double) maxValue))));
+    final int progress = max(0, min(progressBarWidth,
+        (int) Math.round(progressBarWidth * ((double) value / (double) maxValue))));
 
     for (int i = 0; i < progress; i++) {
       builder.append('▒');
@@ -116,4 +118,166 @@ public final class StringUtils {
     }
     return result;
   }
+
+  /**
+   * Match string with a pattern
+   *
+   * @param patArr          pattern chars, can contain wildcards
+   * @param strArr          string char array
+   * @param isCaseSensitive if true them macth is case-sensitive
+   * @return true if matched
+   * @since 1.2.1
+   */
+  public static boolean match(
+      final @Nonnull char[] patArr,
+      final @Nonnull char[] strArr,
+      final boolean isCaseSensitive) {
+    int patIdxStart = 0;
+    int patIdxEnd = patArr.length - 1;
+    int strIdxStart = 0;
+    int strIdxEnd = strArr.length - 1;
+    char ch;
+
+    boolean containsStar = false;
+    for (char aPatArr : patArr) {
+      if (aPatArr == '*') {
+        containsStar = true;
+        break;
+      }
+    }
+
+    if (!containsStar) {
+      // No '*'s, so we make a shortcut
+      if (patIdxEnd != strIdxEnd) {
+        return false; // Pattern and string do not have the same size
+      }
+      for (int i = 0; i <= patIdxEnd; i++) {
+        ch = patArr[i];
+        if (ch != '?' && !equals(ch, strArr[i], isCaseSensitive)) {
+          return false; // Character mismatch
+        }
+      }
+      return true; // String matches against pattern
+    }
+
+    if (patIdxEnd == 0) {
+      return true; // Pattern contains only '*', which matches anything
+    }
+
+    // Process characters before first star
+    while ((ch = patArr[patIdxStart]) != '*' && strIdxStart <= strIdxEnd) {
+      if (ch != '?' && !equals(ch, strArr[strIdxStart], isCaseSensitive)) {
+        return false; // Character mismatch
+      }
+      patIdxStart++;
+      strIdxStart++;
+    }
+    if (strIdxStart > strIdxEnd) {
+      // All characters in the string are used. Check if only '*'s are
+      // left in the pattern. If so, we succeeded. Otherwise failure.
+      for (int i = patIdxStart; i <= patIdxEnd; i++) {
+        if (patArr[i] != '*') {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Process characters after last star
+    while ((ch = patArr[patIdxEnd]) != '*' && strIdxStart <= strIdxEnd) {
+      if (ch != '?' && !equals(ch, strArr[strIdxEnd], isCaseSensitive)) {
+        return false; // Character mismatch
+      }
+      patIdxEnd--;
+      strIdxEnd--;
+    }
+    if (strIdxStart > strIdxEnd) {
+      // All characters in the string are used. Check if only '*'s are
+      // left in the pattern. If so, we succeeded. Otherwise failure.
+      for (int i = patIdxStart; i <= patIdxEnd; i++) {
+        if (patArr[i] != '*') {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // process pattern between stars. padIdxStart and patIdxEnd point
+    // always to a '*'.
+    while (patIdxStart != patIdxEnd && strIdxStart <= strIdxEnd) {
+      int patIdxTmp = -1;
+      for (int i = patIdxStart + 1; i <= patIdxEnd; i++) {
+        if (patArr[i] == '*') {
+          patIdxTmp = i;
+          break;
+        }
+      }
+      if (patIdxTmp == patIdxStart + 1) {
+        // Two stars next to each other, skip the first one.
+        patIdxStart++;
+        continue;
+      }
+      // Find the pattern between padIdxStart & padIdxTmp in str between
+      // strIdxStart & strIdxEnd
+      int patLength = (patIdxTmp - patIdxStart - 1);
+      int strLength = (strIdxEnd - strIdxStart + 1);
+      int foundIdx = -1;
+      strLoop:
+      for (int i = 0; i <= strLength - patLength; i++) {
+        for (int j = 0; j < patLength; j++) {
+          ch = patArr[patIdxStart + j + 1];
+          if (ch != '?' && !equals(ch, strArr[strIdxStart + i + j], isCaseSensitive)) {
+            continue strLoop;
+          }
+        }
+
+        foundIdx = strIdxStart + i;
+        break;
+      }
+
+      if (foundIdx == -1) {
+        return false;
+      }
+
+      patIdxStart = patIdxTmp;
+      strIdxStart = foundIdx + patLength;
+    }
+
+    // All characters in the string are used. Check if only '*'s are left
+    // in the pattern. If so, we succeeded. Otherwise failure.
+    for (int i = patIdxStart; i <= patIdxEnd; i++) {
+      if (patArr[i] != '*') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Compare chars with case sensitivity flag
+   *
+   * @param c1              first char
+   * @param c2              second char
+   * @param isCaseSensitive if true then case-sensitive compare
+   * @return true if chars equal
+   * @since 1.2.1
+   */
+  public static boolean equals(
+      final char c1,
+      final char c2,
+      final boolean isCaseSensitive
+  ) {
+    if (c1 == c2) {
+      return true;
+    }
+    if (!isCaseSensitive) {
+      // NOTE: Try both upper case and lower case as done by String.equalsIgnoreCase()
+      if (Character.toUpperCase(c1) == Character.toUpperCase(c2)
+          || Character.toLowerCase(c1) == Character.toLowerCase(c2)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 }

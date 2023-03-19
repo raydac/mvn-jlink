@@ -33,6 +33,7 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
@@ -100,7 +101,9 @@ public class SapmachineOpenJdkProvider extends AbstractJdkProvider {
 
     assertParameters(config, "type", "version", "arch");
 
-    final String defaultOs = findCurrentOs("osx");
+    final HostOs hostOs = findCurrentOs(HostOs.LINUX);
+    final String defaultOs =
+        hostOs == HostOs.MAC || hostOs == HostOs.MAC_OSX ? "osx" : hostOs.getId();
 
     log.debug("Default OS recognized as: " + defaultOs);
 

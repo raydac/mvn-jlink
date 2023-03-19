@@ -34,6 +34,7 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
 import java.io.IOException;
@@ -94,7 +95,7 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
 
     assertParameters(config, "version", "arch", "type", "impl", "build");
 
-    final String defaultOs = findCurrentOs("macos");
+    final HostOs defaultOs = findCurrentOs(HostOs.LINUX);
 
     log.debug("Default OS recognized as: " + defaultOs);
 
@@ -102,7 +103,7 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
     final String gitRepositoryName =
         config.getOrDefault("repositoryName", "temurin" + getRawVersion(jdkVersion) + "-binaries");
     final String build = config.get("build");
-    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
+    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs.getId());
     final String jdkArch = config.get("arch");
     final String jdkType = config.get("type");
     final String jdkImpl = config.get("impl");

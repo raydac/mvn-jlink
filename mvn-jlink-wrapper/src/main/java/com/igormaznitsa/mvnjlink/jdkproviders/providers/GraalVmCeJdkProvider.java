@@ -32,6 +32,7 @@ import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.AbstractJdkProvider;
 import com.igormaznitsa.mvnjlink.mojos.AbstractJdkToolMojo;
 import com.igormaznitsa.mvnjlink.utils.ArchUtils;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.HttpUtils;
 import com.igormaznitsa.mvnjlink.utils.StringUtils;
 import com.igormaznitsa.mvnjlink.utils.WildCardMatcher;
@@ -80,13 +81,15 @@ public class GraalVmCeJdkProvider extends AbstractJdkProvider {
 
     assertParameters(config, "type", "version", "arch");
 
-    final String defaultOs = findCurrentOs("darwin");
+    final HostOs defaultOs = findCurrentOs(HostOs.LINUX);
+    final String defaultOsId =
+        defaultOs == HostOs.MAC_OSX || defaultOs == HostOs.MAC ? "darwin" : defaultOs.getId();
 
-    log.debug("Default OS recognized as: " + defaultOs);
+    log.debug("Default OS recognized as: " + defaultOsId);
 
     final String jdkType = config.get("type");
     final String jdkVersion = config.get("version");
-    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs);
+    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOsId);
     final String jdkArch = config.get("arch");
     final boolean checkArchive = Boolean.parseBoolean(config.getOrDefault("check", "true"));
     final int perPage = ensurePageSizeValue(config.getOrDefault("perPage", "40"));

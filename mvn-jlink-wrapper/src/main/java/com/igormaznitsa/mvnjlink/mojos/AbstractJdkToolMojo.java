@@ -16,8 +16,10 @@
 
 package com.igormaznitsa.mvnjlink.mojos;
 
+import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.JdkProviderId;
+import com.igormaznitsa.mvnjlink.utils.HostOs;
 import com.igormaznitsa.mvnjlink.utils.ProxySettings;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import java.io.File;
@@ -56,6 +58,22 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
    */
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
+
+  /**
+   * Force host OS from predefined list to override auto-detection
+   *
+   * @since 1.2.1
+   */
+  @Parameter(name = "forceHostOs")
+  private HostOs forceHostOs;
+
+  /**
+   * Way to replace default extensions for host os during mojo processing
+   *
+   * @since 1.2.1
+   */
+  @Parameter(name = "forceOsExtensions")
+  private Map<HostOs, String> forceOsExtensions = new HashMap<>();
 
   /**
    * Disable loading and use only cached JDKs.
@@ -157,6 +175,33 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
             Boolean.toString(this.useOnlyCache)));
   }
 
+  /**
+   * Find host OS, force Host OS parameter aware.
+   *
+   * @return detected host OS
+   * @since 1.2.1
+   */
+  @Nonnull
+  public HostOs findHostOs() {
+    if (this.forceHostOs == null) {
+      return HostOs.findHostOs();
+    } else {
+      return this.forceHostOs;
+    }
+  }
+
+  /**
+   * Get map of defined Host OS file extensions to replace default ones.
+   *
+   * @return map contains pairs of Host OS values and default file extensions
+   * @since 1.2.1
+   */
+  @Nonnull
+  @MustNotContainNull
+  public Map<HostOs, String> getForceOsExtensions() {
+    return this.forceOsExtensions;
+  }
+
   @Nonnull
   public Map<String, String> getProviderConfig() {
     return this.providerConfig;
@@ -245,6 +290,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   @Nonnull
   protected Path getSourceJdkFolderFromProvider() throws MojoExecutionException, MojoFailureException {
     try {
@@ -270,17 +316,21 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
         if (toolchain == null) {
           final String mavenJavaHome = System.getProperty("java.home");
           log.debug("Maven java.home: " + mavenJavaHome);
-          final Path path = SystemUtils.findJdkExecutable(log, Paths.get(mavenJavaHome), SystemUtils.ensureOsExtension(toolName));
+          final Path path = SystemUtils.findJdkExecutable(log, Paths.get(mavenJavaHome), toolName,
+              this.findHostOs(), this.getForceOsExtensions());
           toolPath = path == null ? null : path.toString();
         } else {
           log.debug("Detected toolchain: " + toolchain);
-          toolPath = SystemUtils.ensureOsExtension(toolchain.findTool(toolName));
+          toolPath = SystemUtils.addHostFileExtensionIfNeeded(toolchain.findTool(toolName),
+              this.findHostOs(), this.getForceOsExtensions());
         }
       } else {
         final Path jdkHome = Paths.get(this.getToolJdk());
         if (jdkHome.toFile().isDirectory()) {
           log.debug("Tool base JDK home: " + jdkHome);
-          final Path foundPath = SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName);
+          final Path foundPath =
+              SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName, this.findHostOs(),
+                  this.getForceOsExtensions());
           toolPath = foundPath == null ? null : foundPath.toString();
         } else {
           log.error("Can't find directory: " + jdkHome);
