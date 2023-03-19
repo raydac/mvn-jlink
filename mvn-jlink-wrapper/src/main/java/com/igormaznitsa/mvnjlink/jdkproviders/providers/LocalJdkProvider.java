@@ -55,9 +55,10 @@ public class LocalJdkProvider extends AbstractJdkProvider {
     final String toolPath = this.mojo.findJdkTool("javac");
 
     if (toolPath == null) {
-      log.error("Can't find jlink in the JDK, JDK version must be 9+");
+      log.error(
+          "Can't find javac in the JDK, either inappropriate version of JDK (expected 9+) or host OS.");
     } else {
-      log.debug("Detected jlink path: " + toolPath);
+      log.debug("Detected javac path: " + toolPath);
       final Path path = Paths.get(toolPath);
       Path parent = path.getParent();
       if (parent != null && "bin".equals(assertNotNull(parent.getFileName()).toString())) {
