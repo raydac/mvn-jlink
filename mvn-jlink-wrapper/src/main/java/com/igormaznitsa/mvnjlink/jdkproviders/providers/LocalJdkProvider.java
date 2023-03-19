@@ -56,7 +56,7 @@ public class LocalJdkProvider extends AbstractJdkProvider {
 
     if (toolPath == null) {
       log.error(
-          "Can't find javac in the JDK, either inappropriate version of JDK (expected 9+) or host OS.");
+          "Can't find javac in the JDK, may be inappropriate version of JDK (expected 9+), host OS or extension.");
     } else {
       log.debug("Detected javac path: " + toolPath);
       final Path path = Paths.get(toolPath);

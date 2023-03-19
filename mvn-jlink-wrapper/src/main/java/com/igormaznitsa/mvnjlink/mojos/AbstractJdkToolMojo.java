@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.maven.execution.MavenSession;
@@ -73,7 +74,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
    * @since 1.2.1
    */
   @Parameter(name = "forceOsExtensions")
-  private Map<HostOs, String> forceOsExtensions = new HashMap<>();
+  private Map<String, String> forceOsExtensions = new HashMap<>();
 
   /**
    * Disable loading and use only cached JDKs.
@@ -198,7 +199,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
    */
   @Nonnull
   @MustNotContainNull
-  public Map<HostOs, String> getForceOsExtensions() {
+  public Map<String, String> getForceOsExtensions() {
     return this.forceOsExtensions;
   }
 
@@ -292,14 +293,32 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
 
   @SuppressWarnings("unchecked")
   @Nonnull
-  protected Path getSourceJdkFolderFromProvider() throws MojoExecutionException, MojoFailureException {
+  protected Path getSourceJdkFolderFromProvider()
+      throws MojoExecutionException, MojoFailureException {
     try {
-      return this.getProvider().makeInstance(this).getPathToJdk(this.getAuthorization(), this.getProviderConfig());
+      return this.getProvider().makeInstance(this)
+          .getPathToJdk(this.getAuthorization(), this.getProviderConfig());
     } catch (IOException ex) {
-      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!", ex);
+      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!",
+          ex);
     } catch (FailureException ex) {
       throw new MojoFailureException(ex.getMessage());
     }
+  }
+
+  @Nonnull
+  @MustNotContainNull
+  protected Map<HostOs, String> findForceHostExtensions() {
+    return this.forceOsExtensions.entrySet()
+        .stream().collect(Collectors.toMap(x -> {
+          final HostOs result = HostOs.findForId(x.getKey());
+          if (result == HostOs.UNKNOWN) {
+            throw new IllegalArgumentException(
+                "Unknown host OS ID: " + x.getKey() + " expected one of " +
+                    HostOs.makeAllIdAsString());
+          }
+          return result;
+        }, Map.Entry::getValue));
   }
 
   @Nullable
@@ -307,6 +326,8 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     final Log log = this.getLog();
 
     String toolPath = this.toolPathCache.get(toolName);
+
+    final Map<HostOs, String> foundForcedOsExtensions = this.findForceHostExtensions();
 
     if (toolPath == null) {
       log.debug("toolJdk = " + this.getToolJdk());
@@ -317,12 +338,12 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
           final String mavenJavaHome = System.getProperty("java.home");
           log.debug("Maven java.home: " + mavenJavaHome);
           final Path path = SystemUtils.findJdkExecutable(log, Paths.get(mavenJavaHome), toolName,
-              this.findHostOs(), this.getForceOsExtensions());
+              this.findHostOs(), foundForcedOsExtensions);
           toolPath = path == null ? null : path.toString();
         } else {
           log.debug("Detected toolchain: " + toolchain);
           toolPath = SystemUtils.addHostFileExtensionIfNeeded(toolchain.findTool(toolName),
-              this.findHostOs(), this.getForceOsExtensions());
+              this.findHostOs(), foundForcedOsExtensions);
         }
       } else {
         final Path jdkHome = Paths.get(this.getToolJdk());
@@ -330,7 +351,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
           log.debug("Tool base JDK home: " + jdkHome);
           final Path foundPath =
               SystemUtils.findJdkExecutable(this.getLog(), jdkHome, toolName, this.findHostOs(),
-                  this.getForceOsExtensions());
+                  foundForcedOsExtensions);
           toolPath = foundPath == null ? null : foundPath.toString();
         } else {
           log.error("Can't find directory: " + jdkHome);

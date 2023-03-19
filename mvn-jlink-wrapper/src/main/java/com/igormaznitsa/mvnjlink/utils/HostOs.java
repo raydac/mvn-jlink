@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -131,10 +132,16 @@ public enum HostOs {
   }
 
   @Nonnull
-  public HostOs findForId(@Nonnull final String id) {
+  public static HostOs findForId(@Nonnull final String id) {
     final String normalized = id.toLowerCase(Locale.ENGLISH).trim();
     return VALUES.stream().filter(x -> x != UNKNOWN).filter(x -> x.getId().equals(normalized))
         .findFirst().orElse(UNKNOWN);
+  }
+
+  @Nonnull
+  public static String makeAllIdAsString() {
+    return VALUES.stream().filter(x -> x != UNKNOWN).map(x -> x.getId())
+        .collect(Collectors.joining(","));
   }
 
   @Nonnull
