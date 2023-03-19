@@ -314,7 +314,7 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
           final HostOs result = HostOs.findForId(x.getKey());
           if (result == HostOs.UNKNOWN) {
             throw new IllegalArgumentException(
-                "Unknown host OS ID: " + x.getKey() + " expected one of " +
+                "Unknown host OS ID: " + x.getKey() + ", expected one of " +
                     HostOs.makeAllIdAsString());
           }
           return result;
