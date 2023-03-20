@@ -9,6 +9,12 @@
 
 # Changelog
 
+__1.2.1 (SNAPSHOT)__
+
+- fixed incompatibility with Maven 3.9
+- provided way to force host OS type and replace extensions for OSes, through parameters `forceHostOs`
+  and `forceOsExtensions`
+
 __1.2.0 (18-sep-2022)__
 
 - added digest download and check for Git based providers
