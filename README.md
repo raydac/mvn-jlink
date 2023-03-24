@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 9.0+](https://img.shields.io/badge/java-9.0%2b-green.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.0|jar)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.1|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
@@ -78,9 +78,9 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>cache-jdk18-openjdk-x64</id>
             <goals>
@@ -115,9 +115,9 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>cache-jdk17-graalvmce</id>
             <goals>
@@ -148,9 +148,9 @@ its folder into `jlink.jdk.path` project property
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>cache-jdk-8</id>
             <goals>
@@ -181,9 +181,9 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>call-jdeps</id>
             <goals>
@@ -207,9 +207,9 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>call-jlink</id>
             <goals>
@@ -242,9 +242,9 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 ```xml
 <plugin>
     <groupId>com.igormaznitsa</groupId>
-    <artifactId>mvn-jlink-wrapper</artifactId>
-    <version>1.2.0</version>
-    <executions>
+  <artifactId>mvn-jlink-wrapper</artifactId>
+  <version>1.2.1</version>
+  <executions>
         <execution>
             <id>call-tool</id>
             <phase>package</phase>
