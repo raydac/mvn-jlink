@@ -9,11 +9,12 @@
 
 # Changelog
 
-__1.2.1 (SNAPSHOT)__
+__1.2.1 (24-mar-2023)__
 
-- fixed incompatibility with Maven 3.9
-- provided way to force host OS type and replace extensions for OSes, through parameters `forceHostOs`
-  and `forceOsExtensions`
+- fixed incompatibility with maven 3.9
+- provided way to force tool file extensions per Os
+  through `forceOsExtensions` [#10](https://github.com/raydac/mvn-jlink/issues/10)
+- provided way to force host OS type through `forceHostOs`
 
 __1.2.0 (18-sep-2022)__
 
