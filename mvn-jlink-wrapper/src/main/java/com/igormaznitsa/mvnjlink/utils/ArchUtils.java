@@ -33,12 +33,14 @@ import static org.apache.commons.io.IOUtils.copy;
 
 import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -48,7 +50,6 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -57,6 +58,7 @@ import org.apache.maven.plugin.logging.Log;
 
 public final class ArchUtils {
 
+  public static final Path NOP_PATH = Paths.get("NOP");
   private static final ArchiveStreamFactory ARCHIVE_STREAM_FACTORY = new ArchiveStreamFactory();
 
   private ArchUtils() {
@@ -71,7 +73,7 @@ public final class ArchUtils {
    * @throws IOException if any error
    */
   @Nullable
-  public static final String findShortestDirectory(@Nonnull final Path archiveFile)
+  public static String findShortestDirectory(@Nonnull final Path archiveFile)
       throws IOException {
 
     final String archiveType = findArchiveType(archiveFile);
@@ -102,22 +104,20 @@ public final class ArchUtils {
       zipFile = null;
       try {
         if ("tar.gz".equals(archiveType)) {
-          archiveInputStream = new TarArchiveInputStream(
-              new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
+          archiveInputStream = new KamranzafarTarArchiveFacade(
+              new GZIPInputStream(fileAsInputStream(archiveFile)));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
             @Override
             public ArchiveEntry getNextEntry() throws IOException {
-              final TarArchiveInputStream tarInputStream =
-                  (TarArchiveInputStream) archiveInputStream;
-              return tarInputStream.getNextTarEntry();
+              return archiveInputStream.getNextEntry();
             }
           };
 
         } else {
           archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(
-              new BufferedInputStream(newInputStream(archiveFile)));
+              new BufferedInputStream(fileAsInputStream(archiveFile)));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
@@ -135,31 +135,37 @@ public final class ArchUtils {
       }
     }
 
-    String result = null;
-    while (!Thread.currentThread().isInterrupted()) {
-      final ArchiveEntry entry = entryGetter.getNextEntry();
-      if (entry == null) {
-        break;
-      }
-      String path = entry.getName();
-      boolean dotRootPrefix = false;
-      if (path.startsWith("./")) {
-        path = path.substring(2);
-        dotRootPrefix = true;
-      }
-      final int separator = path.indexOf('/');
-      if (separator >= 0) {
-        result = path.substring(0, separator);
-        if (dotRootPrefix) {
-          result = "./" + result;
+    try {
+      String result = null;
+      while (!Thread.currentThread().isInterrupted()) {
+        final ArchiveEntry entry = entryGetter.getNextEntry();
+        if (entry == null) {
+          break;
+        }
+        String path = entry.getName();
+        boolean dotRootPrefix = false;
+        if (path.startsWith("./")) {
+          path = path.substring(2);
+          dotRootPrefix = true;
+        }
+        final int separator = path.indexOf('/');
+        if (separator >= 0) {
+          result = path.substring(0, separator);
+          if (dotRootPrefix) {
+            result = "./" + result;
+          }
         }
       }
+
+      closeCloseable(archiveInputStream, null);
+      closeCloseable(zipFile, null);
+
+      return result;
+    } catch (IOException ex) {
+      throw new IOException(
+          "Can't read file because '" + ex.getMessage() + "' : " + archiveFile.toAbsolutePath(),
+          ex);
     }
-
-    closeCloseable(archiveInputStream, null);
-    closeCloseable(zipFile, null);
-
-    return result;
   }
 
   @Nonnull
@@ -182,10 +188,10 @@ public final class ArchUtils {
     } finally {
       IOUtils.closeQuietly(zipFile);
     }
-    TarArchiveInputStream tarGzFile = null;
+    KamranzafarTarArchiveFacade tarGzFile = null;
     try {
-      tarGzFile = new TarArchiveInputStream(
-          new GZIPInputStream(new BufferedInputStream(newInputStream(file))));
+      tarGzFile = new KamranzafarTarArchiveFacade(
+          new GZIPInputStream(fileAsInputStream(file)));
       return "tar.gz";
     } catch (Exception ex) {
       // do nothing
@@ -193,6 +199,11 @@ public final class ArchUtils {
       IOUtils.closeQuietly(tarGzFile);
     }
     return "unknown";
+  }
+
+  @Nonnull
+  private static InputStream fileAsInputStream(@Nonnull final Path file) throws IOException {
+    return new BufferedInputStream(newInputStream(file));
   }
 
   /**
@@ -215,7 +226,7 @@ public final class ArchUtils {
     final ArchEntryGetter entryGetter;
 
     final ZipFile zipFile;
-    final ArchiveInputStream archiveInputStream;
+    final ArchiveInputStream<?> archiveInputStream;
 
     final String detectedArchiveType = findArchiveType(archiveFile);
     logger.info("Detected archive type: " + detectedArchiveType);
@@ -244,23 +255,21 @@ public final class ArchUtils {
         if (detectedArchiveType.equals("tar.gz")) {
           logger.debug("Detected TAR.GZ archive");
 
-          archiveInputStream = new TarArchiveInputStream(
-              new GZIPInputStream(new BufferedInputStream(newInputStream(archiveFile))));
+          archiveInputStream =
+              new KamranzafarTarArchiveFacade(new GZIPInputStream(fileAsInputStream(archiveFile)));
 
           entryGetter = new ArchEntryGetter() {
             @Nullable
             @Override
             public ArchiveEntry getNextEntry() throws IOException {
-              final TarArchiveInputStream tarInputStream =
-                  (TarArchiveInputStream) archiveInputStream;
-              return tarInputStream.getNextTarEntry();
+              return archiveInputStream.getNextEntry();
             }
           };
 
         } else {
           logger.debug("Detected OTHER archive");
           archiveInputStream = ARCHIVE_STREAM_FACTORY.createArchiveInputStream(
-              new BufferedInputStream(newInputStream(archiveFile)));
+              fileAsInputStream(archiveFile));
           logger.debug("Created archive stream : " + archiveInputStream.getClass().getName());
 
           entryGetter = new ArchEntryGetter() {
@@ -290,7 +299,8 @@ public final class ArchUtils {
         if (entry == null) {
           break;
         }
-        logger.debug("Unpacking entry: " + entry.getName());
+        logger.debug(
+            "Unpacking entry: " + entry.getName() + " size " + entry.getSize() + " byte(s)");
 
         final String normalizedPath = normalize(entry.getName(), true);
 
@@ -298,8 +308,9 @@ public final class ArchUtils {
             normalizedFolders.stream().anyMatch(normalizedPath::startsWith)) {
           final String normalizedFolder =
               normalizedFolders.stream().filter(normalizedPath::startsWith).findFirst().orElse("");
-          final Path targetFile = get(destinationFolder.toString(),
-              normalizedPath.substring(normalizedFolder.length()));
+          final Path targetFile =
+              destinationFolder == NOP_PATH ? NOP_PATH : get(destinationFolder.toString(),
+                  normalizedPath.substring(normalizedFolder.length()));
 
           if (entry.isDirectory()) {
             logger.debug("Folder : " + normalizedPath);
@@ -313,7 +324,7 @@ public final class ArchUtils {
               createDirectories(parent);
             }
 
-            try (final OutputStream fos = newOutputStream(targetFile)) {
+            try (final OutputStream fos = makeFileOutputStream(targetFile)) {
               if (zipFile != null) {
                 logger.debug("Unpacking ZIP entry : " + normalizedPath);
 
@@ -330,10 +341,14 @@ public final class ArchUtils {
                 if (!archiveInputStream.canReadEntryData(entry)) {
                   throw new IOException("Can't read archive entry data : " + normalizedPath);
                 }
-                if (copy(archiveInputStream, fos) != entry.getSize()) {
+
+                final byte[] readArray = IOUtils.toByteArray(archiveInputStream);
+                if (readArray.length != entry.getSize()) {
                   throw new IOException(
-                      "Can't unpack file, illegal unpacked length : " + entry.getName());
+                      "Can't unpack file, illegal unpacked length (" + readArray.length + "!=" +
+                          entry.getSize() + "): " + entry.getName());
                 }
+                IOUtils.write(readArray, fos);
               }
             }
 
@@ -360,9 +375,23 @@ public final class ArchUtils {
 
       postProcessUnpackedArchive(logger, destinationFolder.toFile());
       return unpackedFilesCounter;
+    } catch (IOException ex) {
+      throw new IOException(
+          "Can't read file because '" + ex.getMessage() + "' : " + archiveFile.toAbsolutePath(),
+          ex);
     } finally {
       closeCloseable(zipFile, logger);
       closeCloseable(archiveInputStream, logger);
+    }
+  }
+
+  @Nonnull
+  private static OutputStream makeFileOutputStream(@Nonnull final Path targetFile)
+      throws IOException {
+    if (targetFile == NOP_PATH) {
+      return new ByteArrayOutputStream();
+    } else {
+      return newOutputStream(targetFile);
     }
   }
 
