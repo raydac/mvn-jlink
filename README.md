@@ -85,7 +85,7 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>cache-jdk18-openjdk-x64</id>
@@ -122,7 +122,7 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>cache-jdk17-graalvmce</id>
@@ -155,7 +155,7 @@ its folder into `jlink.jdk.path` project property
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -188,7 +188,7 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>call-jdeps</id>
@@ -214,7 +214,7 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>call-jlink</id>
@@ -249,7 +249,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 <plugin>
     <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <executions>
         <execution>
             <id>call-tool</id>
