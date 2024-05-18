@@ -9,6 +9,12 @@
 
 # Changelog
 
+__1.2.2 (18-may-2024)__
+
+- refactoring of `tar.gz` decompression, TAR from `commons-compression` replaced
+  by [JTar](https://github.com/kamranzafar/jtar)
+- updated dependencies
+
 __1.2.1 (24-mar-2023)__
 
 - fixed incompatibility with maven 3.9
