@@ -30,18 +30,18 @@ public enum HostOs {
       return IS_OS_WINDOWS;
     }
   }),
-  LINUX("linux", "", new Supplier<Boolean>() {
-    @Override
-    @Nonnull
-    public Boolean get() {
-      return IS_OS_LINUX;
-    }
-  }),
   UNIX("unix", "", new Supplier<Boolean>() {
     @Override
     @Nonnull
     public Boolean get() {
       return SystemUtils.IS_OS_UNIX;
+    }
+  }),
+  LINUX("linux", "", new Supplier<Boolean>() {
+    @Override
+    @Nonnull
+    public Boolean get() {
+      return IS_OS_LINUX;
     }
   }),
   MAC("macos", "", new Supplier<Boolean>() {
