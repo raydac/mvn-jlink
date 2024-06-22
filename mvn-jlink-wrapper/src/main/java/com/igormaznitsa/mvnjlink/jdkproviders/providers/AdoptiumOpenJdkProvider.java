@@ -103,7 +103,8 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
     final String gitRepositoryName =
         config.getOrDefault("repositoryName", "temurin" + getRawVersion(jdkVersion) + "-binaries");
     final String build = config.get("build");
-    final String jdkOs = GetUtils.ensureNonNull(config.get("os"), defaultOs.getId());
+    final String jdkOs =
+        GetUtils.ensureNonNull(config.get("os"), defaultOs.isMac() ? "mac" : defaultOs.getId());
     final String jdkArch = config.get("arch");
     final String jdkType = config.get("type");
     final String jdkImpl = config.get("impl");

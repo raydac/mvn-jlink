@@ -135,12 +135,12 @@ public enum HostOs {
   public static HostOs findForId(@Nonnull final String id) {
     final String normalized = id.toLowerCase(Locale.ENGLISH).trim();
     return VALUES.stream().filter(x -> x != UNKNOWN).filter(x -> x.getId().equals(normalized))
-        .findFirst().orElse(UNKNOWN);
+        .reduce((a, b) -> b).orElse(UNKNOWN);
   }
 
   @Nonnull
   public static String makeAllIdAsString() {
-    return VALUES.stream().filter(x -> x != UNKNOWN).map(x -> x.getId())
+    return VALUES.stream().filter(x -> x != UNKNOWN).map(HostOs::getId)
         .collect(Collectors.joining(","));
   }
 
@@ -151,5 +151,9 @@ public enum HostOs {
 
   public boolean isHostOs() {
     return this.hostChecker.get();
+  }
+
+  public boolean isMac() {
+    return this == MAC || this == MAC_OSX;
   }
 }
