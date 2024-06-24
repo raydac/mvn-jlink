@@ -3,13 +3,16 @@ package com.igormaznitsa.mvnjlink.utils;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_AIX;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_FREE_BSD;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_HP_UX;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_IRIX;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_LINUX;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_MAC;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_MAC_OSX;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_SOLARIS;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_ZOS;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
@@ -69,14 +72,14 @@ public enum HostOs {
     @Override
     @Nonnull
     public Boolean get() {
-      return SystemUtils.IS_OS_IRIX;
+      return IS_OS_IRIX;
     }
   }),
   ZOS("zos", "", new Supplier<Boolean>() {
     @Override
     @Nonnull
     public Boolean get() {
-      return SystemUtils.IS_OS_ZOS;
+      return IS_OS_ZOS;
     }
   }),
   HP_UX("hpux", "", new Supplier<Boolean>() {
@@ -108,7 +111,8 @@ public enum HostOs {
     }
   });
 
-  private static final List<HostOs> VALUES = Arrays.asList(HostOs.values());
+  private static final List<HostOs> VALUES = Arrays.stream(HostOs.values())
+      .sorted(Comparator.comparingInt(Enum::ordinal)).collect(Collectors.toList());
   private final String id;
   private final Supplier<Boolean> hostChecker;
   private final String defaultExtension;
@@ -122,7 +126,9 @@ public enum HostOs {
 
   @Nonnull
   public static HostOs findHostOs() {
-    return VALUES.stream().filter(x -> x != UNKNOWN).filter(HostOs::isHostOs).findFirst()
+    return VALUES.stream().filter(x -> x != UNKNOWN)
+        .filter(HostOs::isHostOs)
+        .reduce((a, b) -> b)
         .orElse(UNKNOWN);
   }
 
@@ -134,7 +140,8 @@ public enum HostOs {
   @Nonnull
   public static HostOs findForId(@Nonnull final String id) {
     final String normalized = id.toLowerCase(Locale.ENGLISH).trim();
-    return VALUES.stream().filter(x -> x != UNKNOWN).filter(x -> x.getId().equals(normalized))
+    return VALUES.stream().filter(x -> x != UNKNOWN)
+        .filter(x -> x.getId().equals(normalized))
         .reduce((a, b) -> b).orElse(UNKNOWN);
   }
 

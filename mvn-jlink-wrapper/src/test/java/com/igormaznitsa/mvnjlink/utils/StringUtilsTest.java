@@ -16,17 +16,16 @@
 
 package com.igormaznitsa.mvnjlink.utils;
 
-import org.apache.commons.io.IOUtils;
-import org.junit.Test;
+import static com.igormaznitsa.meta.common.utils.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-
-public class StringUtilsTest {
+class StringUtilsTest {
 
   @Test
   public void testExtractFileHash() throws IOException {
@@ -34,7 +33,7 @@ public class StringUtilsTest {
   }
 
   @Test
-  public void testExtractModuleNames() throws Exception {
+  void testExtractModuleNames() throws Exception {
     final String text = IOUtils.resourceToString("jmods.out", StandardCharsets.UTF_8, StringUtilsTest.class.getClassLoader());
     final List<String> modules = StringUtils.extractJdepsModuleNames(text);
     assertArrayEquals(

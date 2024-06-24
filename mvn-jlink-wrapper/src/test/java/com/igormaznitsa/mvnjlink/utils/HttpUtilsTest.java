@@ -1,17 +1,21 @@
 package com.igormaznitsa.mvnjlink.utils;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-public class HttpUtilsTest {
+import org.junit.jupiter.api.Test;
+
+class HttpUtilsTest {
 
   @Test
-  public void testContentTypeParsed() {
-    assertTrue(new ContentTypeParsed("text/some+json").equals(new ContentTypeParsed("text/json")));
-    assertTrue(new ContentTypeParsed("text/json").equals(new ContentTypeParsed("text/ddd+fff+json")));
-    assertFalse(new ContentTypeParsed("image/json").equals(new ContentTypeParsed("text/ddd+fff+json")));
-    assertFalse(new ContentTypeParsed("image/json").equals(new ContentTypeParsed("text/ddd+fff+json")));
-    assertFalse(new ContentTypeParsed("text/json").equals(new ContentTypeParsed("text/ddd+fff")));
+  void testContentTypeParsed() {
+    assertEquals(new ContentTypeParsed("text/some+json"), new ContentTypeParsed("text/json"));
+    assertEquals(new ContentTypeParsed("text/json"), new ContentTypeParsed("text/ddd+fff+json"));
+    assertNotEquals(new ContentTypeParsed("image/json"),
+        new ContentTypeParsed("text/ddd+fff+json"));
+    assertNotEquals(new ContentTypeParsed("image/json"),
+        new ContentTypeParsed("text/ddd+fff+json"));
+    assertNotEquals(new ContentTypeParsed("text/json"), new ContentTypeParsed("text/ddd+fff"));
   }
 
 }

@@ -16,13 +16,12 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
+import static com.igormaznitsa.meta.common.utils.Assertions.assertEquals;
 import static com.igormaznitsa.mvnjlink.jdkproviders.providers.LibericaOpenJdkProvider.ReleaseList.Release.BELLSOFT_FILENAME_PATTERN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.regex.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LibericaOpenJdkProviderTest {
 
