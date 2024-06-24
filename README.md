@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 9.0+](https://img.shields.io/badge/java-9.0%2b-green.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.1|jar)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.3|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
@@ -88,9 +88,9 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 ```xml
 
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>cache-jdk18-openjdk-x64</id>
@@ -125,9 +125,9 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 ```xml
 
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>cache-jdk17-graalvmce</id>
@@ -158,9 +158,9 @@ Code snippet shows configuration to cache OpenJDK from ADOPTION provider in proj
 its folder into `jlink.jdk.path` project property
 ```xml
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -191,9 +191,9 @@ The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of m
 The example calls jdeps tool from provided JDK over project jar file and saves output into `jdeps.out` situated in project build folder.
 ```xml
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>call-jdeps</id>
@@ -217,9 +217,9 @@ The goal automates work with `JDK/bin/jlink` utility, it allows to build JDK ima
 The example calls `jlink` from provided JDK and build JDK version based on report provided by `jdeps` tool in `jdeps.out` file, also `java.compiler` module will be added. The prepared JDK version will be presented in project build folder, subfolder `preparedJDK`
 ```xml
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>call-jlink</id>
@@ -252,9 +252,9 @@ It is a universal goal, it allows to make call to any tool situated in `JDK/bin`
 The example calls jps tool from provided tool JDK with 5 seconds timeout and its output will be written into `jps.out` file.
 ```xml
 <plugin>
-    <groupId>com.igormaznitsa</groupId>
+  <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <executions>
         <execution>
             <id>call-tool</id>
