@@ -9,6 +9,11 @@
 
 # Changelog
 
+__1.2.3 (24-jun-2024)__
+
+- fixed MAC OS detection for Adopt JDK provider [#13](https://github.com/raydac/mvn-jlink/issues/13)
+- updated dependencies
+
 __1.2.2 (18-may-2024)__
 
 - refactoring of `tar.gz` decompression, TAR from `commons-compression` replaced
