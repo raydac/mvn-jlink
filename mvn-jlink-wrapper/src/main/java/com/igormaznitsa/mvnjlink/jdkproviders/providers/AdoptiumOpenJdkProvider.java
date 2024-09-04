@@ -296,7 +296,7 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
     }
   }
 
-  private static class ReleaseList {
+  static class ReleaseList {
     private final List<Release> releases = new ArrayList<>();
 
     private ReleaseList() {
@@ -370,10 +370,10 @@ public class AdoptiumOpenJdkProvider extends AbstractJdkProvider {
       return this.releases.stream().map(Release::toString).collect(joining("\n"));
     }
 
-    private static class Release {
+    static class Release {
 
-      private static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile(
-          "^OpenJDK([\\da-z]*)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z_]+)_([\\-a-zA-Z0-9]+).(.+)$",
+      static final Pattern ADOPTGIT_FILENAME_PATTERN = Pattern.compile(
+          "^OpenJDK([\\da-z]*)-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z\\-]+)_([a-z0-9]+)_([\\-a-zA-Z0-9]+|\\d[\\d._]+\\d(?![a-z\\-])).([.a-z0-9]+)$",
           Pattern.CASE_INSENSITIVE);
 
       private final String version;
