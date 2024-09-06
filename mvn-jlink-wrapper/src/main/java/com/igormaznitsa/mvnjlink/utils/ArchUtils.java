@@ -324,48 +324,52 @@ public final class ArchUtils {
               createDirectories(parent);
             }
 
-            try (final OutputStream fos = makeFileOutputStream(targetFile)) {
-              if (zipFile != null) {
-                logger.debug("Unpacking ZIP entry : " + normalizedPath);
+            if (Files.isDirectory(targetFile)) {
+              logger.warn("Ignoring artifact because already presented unpacked folder: " + entry);
+            } else {
 
-                try (final InputStream zipEntryInStream = zipFile.getInputStream(
-                    (ZipArchiveEntry) entry)) {
-                  if (copy(zipEntryInStream, fos) != entry.getSize()) {
+              try (final OutputStream fos = makeFileOutputStream(targetFile)) {
+                if (zipFile != null) {
+                  logger.debug("Unpacking ZIP entry : " + normalizedPath);
+
+                  try (final InputStream zipEntryInStream = zipFile.getInputStream(
+                      (ZipArchiveEntry) entry)) {
+                    if (copy(zipEntryInStream, fos) != entry.getSize()) {
+                      throw new IOException(
+                          "Can't unpack file, illegal unpacked length : " + entry.getName());
+                    }
+                  }
+                } else {
+                  logger.debug("Unpacking archive entry : " + normalizedPath);
+
+                  if (!archiveInputStream.canReadEntryData(entry)) {
+                    throw new IOException("Can't read archive entry data : " + normalizedPath);
+                  }
+
+                  final byte[] readArray = IOUtils.toByteArray(archiveInputStream);
+                  if (readArray.length != entry.getSize()) {
                     throw new IOException(
-                        "Can't unpack file, illegal unpacked length : " + entry.getName());
+                        "Can't unpack file, illegal unpacked length (" + readArray.length + "!=" +
+                            entry.getSize() + "): " + entry.getName());
+                  }
+                  IOUtils.write(readArray, fos);
+                }
+              }
+
+              if (tryMakeExecutable) {
+                final String name =
+                    assertNotNull(targetFile.getFileName()).toString().toLowerCase(ENGLISH);
+                if (Files.size(targetFile) > 0 && (name.endsWith(".bat")
+                    || name.endsWith(".cmd")
+                    || name.endsWith(".exe")
+                    || name.endsWith(".sh")
+                    || !name.contains("."))) {
+                  if (!targetFile.toFile().setExecutable(true, true)) {
+                    logger.warn("Can't make executable : " + targetFile);
                   }
                 }
-              } else {
-                logger.debug("Unpacking archive entry : " + normalizedPath);
-
-                if (!archiveInputStream.canReadEntryData(entry)) {
-                  throw new IOException("Can't read archive entry data : " + normalizedPath);
-                }
-
-                final byte[] readArray = IOUtils.toByteArray(archiveInputStream);
-                if (readArray.length != entry.getSize()) {
-                  throw new IOException(
-                      "Can't unpack file, illegal unpacked length (" + readArray.length + "!=" +
-                          entry.getSize() + "): " + entry.getName());
-                }
-                IOUtils.write(readArray, fos);
               }
             }
-
-            if (tryMakeExecutable) {
-              final String name =
-                  assertNotNull(targetFile.getFileName()).toString().toLowerCase(ENGLISH);
-              if (Files.size(targetFile) > 0 && (name.endsWith(".bat")
-                  || name.endsWith(".cmd")
-                  || name.endsWith(".exe")
-                  || name.endsWith(".sh")
-                  || !name.contains("."))) {
-                if (!targetFile.toFile().setExecutable(true, true)) {
-                  logger.warn("Can't make executable : " + targetFile);
-                }
-              }
-            }
-
             unpackedFilesCounter++;
           }
         } else {
