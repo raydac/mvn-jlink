@@ -185,7 +185,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       @Nonnull final HttpClient client,
       @Nullable final String authorization,
       @Nonnull final Path tempFolder,
-      @Nonnull final Path destUnpackFolder,
+      @Nonnull final Path destinationUnpackFolder,
       @Nonnull final ReleaseList.Release release,
       final boolean check,
       final boolean keepArchiveFile,
@@ -257,9 +257,10 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
       log.info("Archive loading is skipped");
     }
 
-    if (isDirectory(destUnpackFolder)) {
-      log.info("Detected existing target folder, deleting it: " + destUnpackFolder.getFileName());
-      deleteDirectory(destUnpackFolder.toFile());
+    if (isDirectory(destinationUnpackFolder)) {
+      log.info(
+          "Detected existing target folder, deleting it: " + destinationUnpackFolder.getFileName());
+      deleteDirectory(destinationUnpackFolder.toFile());
     }
 
     for (final Consumer<Path> c : loadedArchiveConsumers) {
@@ -270,7 +271,7 @@ public class LibericaOpenJdkProvider extends AbstractJdkProvider {
     log.debug("Root archive folder: " + archiveRootName);
     log.info("Unpacking archive...");
     final int numberOfUnpackedFiles =
-        unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destUnpackFolder,
+        unpackArchiveFile(this.mojo.getLog(), true, pathToArchiveFile, destinationUnpackFolder,
             archiveRootName);
     if (numberOfUnpackedFiles == 0) {
       throw new IOException(

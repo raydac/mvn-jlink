@@ -151,6 +151,11 @@ public enum HostOs {
         .collect(Collectors.joining(","));
   }
 
+  public static boolean isAlpineLinux() {
+    final String osName = System.getProperty("os.name", "").toLowerCase(Locale.ENGLISH);
+    return osName.contains("linux") && osName.contains("alpine");
+  }
+
   @Nonnull
   public String getDefaultExtension() {
     return this.defaultExtension;

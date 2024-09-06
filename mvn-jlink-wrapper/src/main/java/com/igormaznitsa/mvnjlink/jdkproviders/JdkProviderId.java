@@ -16,6 +16,7 @@
 
 package com.igormaznitsa.mvnjlink.jdkproviders;
 
+import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptiumApiOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.AdoptiumOpenJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.GraalVmCeJdkProvider;
 import com.igormaznitsa.mvnjlink.jdkproviders.providers.LibericaOpenJdkProvider;
@@ -29,6 +30,7 @@ import javax.annotation.Nonnull;
 
 public enum JdkProviderId {
   ADOPTIUM(AdoptiumOpenJdkProvider.class),
+  ADOPTIUM_API(AdoptiumApiOpenJdkProvider.class),
   BELLSOFT(LibericaOpenJdkProvider.class),
   SAPMACHINE(SapmachineOpenJdkProvider.class),
   GRAALVMCE(GraalVmCeJdkProvider.class),

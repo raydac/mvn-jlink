@@ -64,6 +64,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.protocol.HttpContext;
@@ -164,8 +165,9 @@ public final class HttpUtils {
       }
 
       if (statusCode != HttpStatus.SC_OK) {
-        throw new IOException(String.format("Can't download SDK archive from %s : %d %s", urlLink,
-            statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+        throw new IOException(
+            String.format("Can't download SDK archive from %s : %d %s, (response=%s)", urlLink,
+                statusLine.getStatusCode(), statusLine.getReasonPhrase(), response));
       }
 
       if (responseConsumer != null) {
@@ -229,7 +231,9 @@ public final class HttpUtils {
   ) throws IOException {
     final HttpClientBuilder builder = HttpClients.custom();
 
-    builder.disableCookieManagement();
+    builder
+        .setRedirectStrategy(LaxRedirectStrategy.INSTANCE)
+        .disableCookieManagement();
 
     if (proxy != null) {
       if (proxy.hasCredentials()) {

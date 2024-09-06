@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Java 9.0+](https://img.shields.io/badge/java-9.0%2b-green.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.3|jar)
+[![Java 11+](https://img.shields.io/badge/java-11.0%2b-green.svg)](https://bell-sw.com/pages/downloads/)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.4|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
@@ -9,31 +9,18 @@
 
 # Changelog
 
+__1.2.4 (SNAPSHOT)__
+
+- added provider for ADOPTIUM API calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
+- fixed pattern to extract build version and extensions for ADOPTION
+  provider [#14](https://github.com/raydac/mvn-jlink/issues/15)
+- updated dependencies
+
 __1.2.3 (24-jun-2024)__
 
 - fixed MAC OS detection for Adopt JDK provider [#13](https://github.com/raydac/mvn-jlink/issues/13)
 - updated dependencies
 
-__1.2.2 (18-may-2024)__
-
-- refactoring of `tar.gz` decompression, TAR from `commons-compression` replaced
-  by [JTar](https://github.com/kamranzafar/jtar)
-- updated dependencies
-
-__1.2.1 (24-mar-2023)__
-
-- fixed incompatibility with maven 3.9
-- provided way to force tool file extensions per Os
-  through `forceOsExtensions` [#10](https://github.com/raydac/mvn-jlink/issues/10)
-- provided way to force host OS type through `forceHostOs`
-
-__1.2.0 (18-sep-2022)__
-
-- added digest download and check for Git based providers
-- __removed ADOPT and ADOPTGIT providers, now they covered by new ADOPTIUM provider__
-- __added MICROSOFT OpenJDK provider__
-- __added URL provider to use direct URL__
-- refactoring
 
 [full changelog](CHANGELOG.txt)
 
@@ -60,6 +47,9 @@ At present the plug-in supports listed OpenJDK providers:
 * __[MICROSOFT](https://www.microsoft.com/openjdk)__ - Prebuilt binary archives of Microsoft OpenJDK
 * __[BELLSOFT](https://www.bell-sw.com/java.html)__ - _(Git based)_ Prebuilt binary archives of OpenJDK 'LIBERICA' for
   many platforms including embedded ones, __it has versions includes JavaFX module__.
+* __[ADOPTIUM_API](https://api.adoptium.net/q/swagger-ui/)__ - _(REST API based)_ Prebuilt binary archives of OpenJDK
+  Eclipse Adoptium for many
+  platforms, downloading through REST API.
 * __[ADOPTIUM](https://adoptium.net/)__ - _(Git based)_ Prebuilt binary archives of OpenJDK Eclipse Adoptium for many
   platforms.
 * __[SAPMACHINE](https://github.com/SAP/SapMachine)__ - _(Git based)_ Prebuilt binary archives of OpenJDK provided by

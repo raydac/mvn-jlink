@@ -17,6 +17,8 @@
         <module>mvn-jlink-test-cache</module>
         <module>mvn-jlink-test-local</module>
         <module>mvn-jlink-test-tool</module>
+        <module>mvn-jlink-test-adoptiumapi-jdk17</module>
+        <module>mvn-jlink-test-adoptiumapi-jdk21</module>
         <module>mvn-jlink-test-adoptium-jdk8</module>
         <module>mvn-jlink-test-adoptium-jdk19</module>
         <module>mvn-jlink-test-liberica-jdk13</module>
