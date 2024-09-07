@@ -2,6 +2,8 @@ package com.igormaznitsa.mvnjlink.jdkproviders.providers;
 
 import static com.igormaznitsa.meta.common.utils.Assertions.assertNotNull;
 import static com.igormaznitsa.mvnjlink.utils.ArchUtils.unpackArchiveFile;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.escapeFileName;
+import static com.igormaznitsa.mvnjlink.utils.StringUtils.longHash;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.isDirectory;
 import static java.nio.file.Files.isRegularFile;
@@ -55,21 +57,24 @@ public class AdoptiumApiOpenJdkProvider extends AbstractJdkProvider {
       @Nullable final String jdkClib,
       @Nullable final String jdkProject
   ) {
-    return "ADOPT_" +
-        Integer.toHexString(baseUrl.hashCode()).toUpperCase(ENGLISH) +
+    String folderName = "ADOPT_" +
+        Long.toHexString(longHash(baseUrl)).toUpperCase(ENGLISH) +
         '_' + (jdkFeatureVersion == null ? "" : jdkFeatureVersion.trim().toLowerCase(
         ENGLISH)) +
         (jdkReleaseName == null ? "" : jdkReleaseName.trim().toLowerCase(
             ENGLISH)) +
-        '_' + jdkReleaseType.trim().toLowerCase(ENGLISH) +
+        (jdkFeatureVersion == null ? "" : '_' + jdkReleaseType.trim().toLowerCase(ENGLISH)) +
         '_' + jdkArch.trim().toLowerCase(ENGLISH) +
         '_' + jdkHeapSize.trim().toLowerCase(ENGLISH) +
         '_' + jdkImageType.trim().toLowerCase(ENGLISH) +
         '_' + jdkJvmImpl.trim().toLowerCase(ENGLISH) +
         '_' + jdkOs.trim().toLowerCase(ENGLISH) +
-        '_' + jdkVendor.trim().toLowerCase(ENGLISH) +
-        '_' + (jdkClib == null ? "" : jdkClib.trim().toLowerCase(ENGLISH)) +
-        (jdkProject == null ? "" : jdkProject.trim().toLowerCase(ENGLISH));
+        '_' + jdkVendor.trim().toLowerCase(ENGLISH);
+    if (jdkClib != null || jdkProject != null) {
+      folderName += '_' + (jdkClib == null ? "" : jdkClib.trim().toLowerCase(ENGLISH)) +
+          (jdkProject == null ? "" : jdkProject.trim().toLowerCase(ENGLISH));
+    }
+    return escapeFileName(folderName);
   }
 
   @Nonnull

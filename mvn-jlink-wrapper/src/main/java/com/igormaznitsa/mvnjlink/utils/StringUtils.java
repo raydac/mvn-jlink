@@ -27,12 +27,22 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class StringUtils {
   private static final Pattern PATTERN_MODULE_LINE = compile("^(.*)->(.*)$");
   private static final Pattern PATTERN_FILE_HASH = compile("([0-9a-fA-F]+)\\s+(.+)");
 
   private StringUtils() {
+  }
+
+  public static long longHash(@Nullable final String text) {
+    if (text == null) {
+      return 0L;
+    }
+    final int direct = text.hashCode();
+    final int reverse = new StringBuilder(text).reverse().toString().hashCode();
+    return ((long) direct << 32) | ((long) reverse & 0xFFFFFFFFL);
   }
 
   @Nonnull

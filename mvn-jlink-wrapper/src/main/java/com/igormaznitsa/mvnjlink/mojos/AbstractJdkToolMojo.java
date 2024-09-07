@@ -20,6 +20,7 @@ import com.igormaznitsa.meta.annotation.MustNotContainNull;
 import com.igormaznitsa.mvnjlink.exceptions.FailureException;
 import com.igormaznitsa.mvnjlink.jdkproviders.JdkProviderId;
 import com.igormaznitsa.mvnjlink.utils.HostOs;
+import com.igormaznitsa.mvnjlink.utils.HttpResponseException;
 import com.igormaznitsa.mvnjlink.utils.ProxySettings;
 import com.igormaznitsa.mvnjlink.utils.SystemUtils;
 import java.io.File;
@@ -298,11 +299,12 @@ public abstract class AbstractJdkToolMojo extends AbstractMojo {
     try {
       return this.getProvider().makeInstance(this)
           .getPathToJdk(this.getAuthorization(), this.getProviderConfig());
-    } catch (IOException ex) {
-      throw new MojoExecutionException("Provider can't prepare JDK folder, see log for errors!",
-          ex);
-    } catch (FailureException ex) {
+    } catch (HttpResponseException | FailureException ex) {
       throw new MojoFailureException(ex.getMessage());
+    } catch (IOException ex) {
+      throw new MojoExecutionException(
+          "Unexpected error during JDK folder preparation, see log for errors!",
+          ex);
     }
   }
 

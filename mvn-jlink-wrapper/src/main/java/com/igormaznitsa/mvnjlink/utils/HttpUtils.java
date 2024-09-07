@@ -165,9 +165,10 @@ public final class HttpUtils {
       }
 
       if (statusCode != HttpStatus.SC_OK) {
-        throw new IOException(
-            String.format("Can't download SDK archive from %s : %d %s, (response=%s)", urlLink,
-                statusLine.getStatusCode(), statusLine.getReasonPhrase(), response));
+        throw new HttpResponseException(
+            String.format("HTTP request returns unexpected %d code (%s)",
+                response.getStatusLine().getStatusCode(),
+                response.getStatusLine().getReasonPhrase()), response);
       }
 
       if (responseConsumer != null) {
