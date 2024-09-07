@@ -35,7 +35,7 @@
                 <artifactId>mvn-jlink-wrapper</artifactId>
                 <executions>
                     <execution>
-                        <id>cache-jdk-13</id>
+                        <id>cache-jdk-21</id>
                         <goals>
                             <goal>cache-jdk</goal>
                         </goals>
@@ -43,7 +43,7 @@
                             <provider>SAPMACHINE</provider>
                             <providerConfig>
                                 <type>jdk</type>
-                                <version>13.0.1</version>
+                                <version>22.0.2</version>
                                 <arch>x64</arch>
                             </providerConfig>
                             <jdkCachePath>${project.build.directory}${file.separator}jlinkCache</jdkCachePath>

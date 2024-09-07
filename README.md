@@ -9,7 +9,7 @@
 
 # Changelog
 
-__1.2.4 (SNAPSHOT)__
+__1.2.4 (07-sep-2024)__
 
 - added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
 - fixed pattern to extract build version and extensions for ADOPTION
