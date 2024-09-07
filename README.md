@@ -11,7 +11,7 @@
 
 __1.2.4 (SNAPSHOT)__
 
-- added provider for ADOPTIUM API calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
+- added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
 - fixed pattern to extract build version and extensions for ADOPTION
   provider [#14](https://github.com/raydac/mvn-jlink/issues/15)
 - updated dependencies
@@ -21,23 +21,25 @@ __1.2.3 (24-jun-2024)__
 - fixed MAC OS detection for Adopt JDK provider [#13](https://github.com/raydac/mvn-jlink/issues/13)
 - updated dependencies
 
-
 [full changelog](CHANGELOG.txt)
 
 # Introduction
 
-Since Java 9, JDK has modules (project Jigsaw) and it provides more or less smoothly way to build JDK versions
-containing only needed modules. Such formed JDK image can be delivered together with Java application. Because I have
-several Java based OSS projects (like [SciaReto](http://www.igormaznitsa.com/netbeans-mmd-plugin/)
-and [ZXPoly emulator](https://github.com/raydac/zxpoly)) which would be nicer with provided pre-built JDK image, I
-decided to automate processing of JDK image build and have developed the maven plug-in (because Maven is the main tool
-which I use for OSS projects).
+Since Java 9, the JDK introduced modules through Project Jigsaw, providing a streamlined approach to building custom JDK
+versions containing only the necessary modules. These tailored JDK images can be bundled with Java applications for
+optimized deployment. Given my involvement in several Java-based open-source projects, such
+as [SciaReto](http://www.igormaznitsa.com/netbeans-mmd-plugin/) and
+the [ZXPoly emulator](https://github.com/raydac/zxpoly), I recognized the benefit of offering pre-built JDK images with
+these applications. To automate the creation of these images, I developed a Maven plugin, as Maven is my primary tool
+for managing OSS projects.
 
 # What does it do?
 
-Functionality of the plugin is very easy, it just provides way to execute tools placed in JDK/bin folder like jdeps and
-jlink, but sometime it is needed to make image of a specific JDK, for such cases my plugin has internal mechanism which
-automatically downloads needed variant of OpenJDK from a provider, unpack it and the JDK can be used to build JDK image.
+The functionality of the plugin is straightforward: it allows the execution of tools located in the JDK's bin directory,
+such as `jdeps` and `jlink`. In cases where a specific JDK version is required to create an image, the plugin includes
+an internal mechanism that automatically downloads the necessary version of OpenJDK from a designated provider, unpacks
+it,
+and makes it available for building the JDK image.
 
 At present the plug-in supports listed OpenJDK providers:
 
@@ -59,28 +61,30 @@ At present the plug-in supports listed OpenJDK providers:
 
 > **Warning**  
 > For Git based providers, it is possible to tune page size during search through `perPage` parameter (by default 40).
-> Also it is possible to disable check of digests through configuration boolean `check` parameter (which by default true).
+> Also it is possible to disable check of digests through configuration boolean `check` parameter (which by default
+> true).
 
 # Goals and parameters
 
-The plug-in provides four goals:
+All JDK provider parameter info you can get through [the mind map](./assets/mindmap.png).
 
 ## Goal `cache-jdk`
 
-The goal just downloads JDK from a provider, unpack it and placing the JDK folder path into Maven custom named project
-property which can be used by other plug-ins.
+The goal is to download the JDK from a specified provider, unpack it, and store the JDK folder path in a custom-named
+Maven project property. This property can then be utilized by other plugins within the project.
 
 ### Examples
 
-Code snippet shows caching of JDK downloaded directly through URL, it will be automatically downloaded and unpacked into
-plug-in's cache and its path will be provided in maven project through `jlink.jdk.path` property
+The provided code snippet illustrates the caching mechanism for JDK downloads via a direct URL. When executed, the JDK
+is automatically downloaded and unpacked into the plugin's cache directory. Subsequently, the path to the cached JDK is
+made available to the Maven project through the `jlink.jdk.path` property.
 
 ```xml
 
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <executions>
         <execution>
             <id>cache-jdk18-openjdk-x64</id>
@@ -109,15 +113,17 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 </plugin>
 ```
 
-Code snippet shows caching of GraalVM CE, the GraalVM distributive will be automatically downloaded and unpacked into
-plug-in's cache and its path will be provided in maven project through `jlink.jdk.path` property
+The code snippet demonstrates the caching of GraalVM Community Edition (CE). The GraalVM distribution will be
+automatically
+downloaded and unpacked into the plugin's cache. Its path will then be supplied to the Maven project via the
+`jlink.jdk.path` property.
 
 ```xml
 
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <executions>
         <execution>
             <id>cache-jdk17-graalvmce</id>
@@ -144,13 +150,16 @@ plug-in's cache and its path will be provided in maven project through `jlink.jd
 </plugin>
 ```
 
-Code snippet shows configuration to cache OpenJDK from ADOPTION provider in project build folder and then save path to
-its folder into `jlink.jdk.path` project property
+The code snippet illustrates the configuration to cache OpenJDK from the ADOPTION provider within the project's build
+folder.
+The path to this folder is then stored in the `jlink.jdk.path` project property.
+
 ```xml
+
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -176,14 +185,21 @@ its folder into `jlink.jdk.path` project property
 ```
 
 ## Goal `jdeps`
-The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of modules needed by a JAR and save result into a file.
+
+The goal automates work with `JDK/bin/jdeps` utility, it allows to get list of modules needed by a JAR and save result
+into a file.
+
 ### Example
-The example calls jdeps tool from provided JDK over project jar file and saves output into `jdeps.out` situated in project build folder.
+
+The example calls jdeps tool from provided JDK over project jar file and saves output into `jdeps.out` situated in
+project build folder.
+
 ```xml
+
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <executions>
         <execution>
             <id>call-jdeps</id>
@@ -202,14 +218,21 @@ The example calls jdeps tool from provided JDK over project jar file and saves o
 ```
 
 ## Goal `jlink`
+
 The goal automates work with `JDK/bin/jlink` utility, it allows to build JDK image based on `jdeps` output.
+
 ### Example
-The example calls `jlink` from provided JDK and build JDK version based on report provided by `jdeps` tool in `jdeps.out` file, also `java.compiler` module will be added. The prepared JDK version will be presented in project build folder, subfolder `preparedJDK`
+
+The example calls `jlink` from provided JDK and build JDK version based on report provided by `jdeps` tool in
+`jdeps.out` file, also `java.compiler` module will be added. The prepared JDK version will be presented in project build
+folder, subfolder `preparedJDK`
+
 ```xml
+
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <executions>
         <execution>
             <id>call-jlink</id>
@@ -237,10 +260,16 @@ The example calls `jlink` from provided JDK and build JDK version based on repor
 ```
 
 ## Goal `jdk-tool`
+
 It is a universal goal, it allows to make call to any tool situated in `JDK/bin` and save its output into files.
+
 ### Example
-The example calls jps tool from provided tool JDK with 5 seconds timeout and its output will be written into `jps.out` file.
+
+The example calls jps tool from provided tool JDK with 5 seconds timeout and its output will be written into `jps.out`
+file.
+
 ```xml
+
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
@@ -265,6 +294,7 @@ The example calls jps tool from provided tool JDK with 5 seconds timeout and its
 </plugin>
 ```
 
-# Mind Map of the plug-in
+# Mind Map of all plug-in parameters
+
 Created with [SciaReto](http://sciareto.org)   
 ![mindmap](https://raw.githubusercontent.com/raydac/mvn-jlink/master/assets/mindmap.png)

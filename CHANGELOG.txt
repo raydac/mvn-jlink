@@ -1,6 +1,6 @@
 __1.2.4 (SNAPSHOT)__
 
-- added provider for ADOPTIUM API calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
+- added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
 - fixed pattern to extract build version and extensions for ADOPTION provider [#14](https://github.com/raydac/mvn-jlink/issues/15)
 - updated dependencies
 
