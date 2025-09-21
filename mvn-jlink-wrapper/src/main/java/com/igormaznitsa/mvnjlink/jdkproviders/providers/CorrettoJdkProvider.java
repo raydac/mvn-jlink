@@ -63,10 +63,10 @@ public class CorrettoJdkProvider extends UrlLinkJdkProvider {
     final HostOs hostOs = findCurrentOs(HostOs.LINUX);
 
     // Parameters with defaults
-    final String downloadUrl = config.getOrDefault("downloadUrl", DEFAULT_DOWNLOAD_URL_PREFIX);
-    final String downloadPath = config.getOrDefault("downloadPath", DEFAULT_DOWNLOAD_PATH);
+    final String downloadUrl = config.getOrDefault("baseUrl", DEFAULT_DOWNLOAD_URL_PREFIX);
+    final String downloadPath = config.getOrDefault("path", DEFAULT_DOWNLOAD_PATH);
     final String downloadChecksumPath =
-        config.getOrDefault("downloadChecksumPath", DEFAULT_CHECKSUM_PATH);
+        config.getOrDefault("checksumPath", DEFAULT_CHECKSUM_PATH);
     final String jdkFeatureVersion = config.getOrDefault("featureVersion", "25");
     final String jdkArch = config.getOrDefault("arch", "x64"); // x64 or aarch64
     final String jdkOs = config.getOrDefault("os", hostOs.isMac() ? "macos" : hostOs.getId()); // linux or windows or macos or alpine or al (Amazon Linux) or al2023 (Amawon Linux 2023)
