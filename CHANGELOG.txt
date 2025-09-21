@@ -1,3 +1,7 @@
+__1.2.5 (SNAPSHOT)__
+
+- added `CORRETTO` provider for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
+
 __1.2.4 (07-sep-2024)__
 
 - added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)

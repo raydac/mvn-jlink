@@ -9,20 +9,16 @@
 
 # Changelog
 
-__Next Release (??-??-2025)__
+__1.2.5 (SNAPSHOT)__
 
-- added `CORRETTO` provider  [#17](https://github.com/raydac/mvn-jlink/issues/17)
+- added `CORRETTO` provider
+  for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
 
 __1.2.4 (07-sep-2024)__
 
 - added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
 - fixed pattern to extract build version and extensions for ADOPTIUM
   provider [#14](https://github.com/raydac/mvn-jlink/issues/15)
-- updated dependencies
-
-__1.2.3 (24-jun-2024)__
-
-- fixed MAC OS detection for Adopt JDK provider [#13](https://github.com/raydac/mvn-jlink/issues/13)
 - updated dependencies
 
 [full changelog](CHANGELOG.txt)
