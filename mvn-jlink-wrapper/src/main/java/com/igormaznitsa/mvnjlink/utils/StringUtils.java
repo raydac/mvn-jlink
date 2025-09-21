@@ -36,6 +36,34 @@ public final class StringUtils {
   private StringUtils() {
   }
 
+  @Nonnull
+  public static String mergeUrl(@Nonnull @MustNotContainNull final String... parts) {
+    final StringBuilder result = new StringBuilder();
+    for (final String s : parts) {
+      if (result.length() == 0) {
+        result.append(s);
+      } else {
+        final boolean lastBackSlash = result.charAt(result.length() - 1) == '/';
+        final boolean startsWithBackSlash = s.startsWith("/");
+        if (startsWithBackSlash) {
+          if (lastBackSlash) {
+            result.setLength(result.length() - 1);
+            result.append(s);
+          } else {
+            result.append(s);
+          }
+        } else {
+          if (lastBackSlash) {
+            result.append(s);
+          } else {
+            result.append('/').append(s);
+          }
+        }
+      }
+    }
+    return result.toString();
+  }
+
   public static long longHash(@Nullable final String text) {
     if (text == null) {
       return 0L;

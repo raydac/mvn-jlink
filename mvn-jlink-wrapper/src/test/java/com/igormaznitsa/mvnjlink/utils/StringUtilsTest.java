@@ -28,6 +28,18 @@ import org.junit.jupiter.api.Test;
 class StringUtilsTest {
 
   @Test
+  public void testMergeUrl() {
+    assertEquals("https://hello.com/some/path",
+        StringUtils.mergeUrl("https://hello.com", "some", "path"));
+    assertEquals("https://hello.com/some/path",
+        StringUtils.mergeUrl("https://hello.com/", "/some", "/path"));
+    assertEquals("https://hello.com/some/path",
+        StringUtils.mergeUrl("https://hello.com/", "/some/", "/path"));
+    assertEquals("https://hello.com/some/path",
+        StringUtils.mergeUrl("https://hello.com/", "some", "/path"));
+  }
+
+  @Test
   public void testExtractFileHash() throws IOException {
     assertEquals("ab8674dd80538dd47279d90c37fd51bdac713d2e67ec09c3b4d1cb5d16a3cfa8", StringUtils.extractFileHash("ab8674dd80538dd47279d90c37fd51bdac713d2e67ec09c3b4d1cb5d16a3cfa8  OpenJDK8-OPENJ9_ppc64_AIX_jdk8u162-b12_openj9-0.8.0.tar.gz"));
   }
