@@ -9,6 +9,10 @@
 
 # Changelog
 
+__Next Release (??-??-2025)__
+
+- added `CORRETTO` provider  [#17](https://github.com/raydac/mvn-jlink/issues/17)
+
 __1.2.4 (07-sep-2024)__
 
 - added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
@@ -58,6 +62,7 @@ At present the plug-in supports listed OpenJDK providers:
   SAP.
 * __[GRAALVMCE](https://github.com/graalvm/graalvm-ce-builds)__ - _(Git based)_ Prebuilt JDK distributives of GraalVM
   Community Edition.
+* __[CORRETTO](https://docs.aws.amazon.com/corretto/)__ - _(REST API based)_ Prebuilt binary archives of Corretto OpenJDK distribution provided by Amazon.
 
 > **Warning**  
 > For Git based providers, it is possible to tune page size during search through `perPage` parameter (by default 40).

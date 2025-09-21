@@ -29,6 +29,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -72,8 +73,10 @@ import org.apache.maven.plugin.logging.Log;
 
 public final class HttpUtils {
 
+  public static final String MIME_ALL = ContentType.WILDCARD.getMimeType();
   public static final String MIME_OCTET_STREAM = "application/octet-stream";
   public static final Set<String> ARCHIVE_MIME_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+                  "binary/octet-stream",
                   "application/x-gzip",
                   "application/zip",
                   "application/tar+gzip"
@@ -176,11 +179,11 @@ public final class HttpUtils {
       }
 
       final HttpEntity entity = response.getEntity();
-      final ContentTypeParsed contentType = new ContentTypeParsed(ContentType.get(entity).getMimeType());
+      final ContentTypeParsed contentType = Optional.ofNullable(ContentType.get(entity)).map(ContentType::getMimeType).map(ContentTypeParsed::new).orElse(null);
 
-      if (acceptedContent.length != 0 && of(acceptedContent).map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
+      if (acceptedContent.length != 0 && Arrays.stream(acceptedContent).noneMatch(MIME_ALL::equals) && Arrays.stream(acceptedContent).map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
         if (!expectedBinaryFile || ARCHIVE_MIME_TYPES.stream().map(ContentTypeParsed::new).noneMatch(x -> x.equals(contentType))) {
-          throw new IOException("Unexpected content type : " + ContentType.get(entity).getMimeType() + " (expected: " + Arrays.toString(acceptedContent) + ")");
+          throw new IOException("Unexpected content type : " + ContentType.get(entity) + " (expected: " + Arrays.toString(acceptedContent) + ")");
         }
       }
       consumer.accept(entity);
