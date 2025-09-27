@@ -2,10 +2,10 @@
 [![Java 11+](https://img.shields.io/badge/java-11.0%2b-green.svg)](https://bell-sw.com/pages/downloads/)
 [![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.5|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
-[![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
-[![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
 
 ![logo](assets/logo_git.png)
+
+[![Arthur's acres sanctuary donation](assets/arthur_sanctuary_banner.png)](https://www.arthursacresanimalsanctuary.org/donate)
 
 # Changelog
 
@@ -13,6 +13,7 @@ __1.2.5 (27-sep-2025)__
 
 - added `CORRETTO` provider
   for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
+- updated dependencies
 
 __1.2.4 (07-sep-2024)__
 

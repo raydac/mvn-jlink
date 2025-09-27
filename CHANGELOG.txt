@@ -1,6 +1,7 @@
 __1.2.5 (27-sep-2025)__
 
 - added `CORRETTO` provider for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
+- updated dependencies
 
 __1.2.4 (07-sep-2024)__
 
