@@ -125,7 +125,7 @@ downloaded and unpacked into the plugin's cache. Its path will then be supplied 
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.4</version>
+    <version>1.2.5</version>
   <executions>
         <execution>
             <id>cache-jdk17-graalvmce</id>
