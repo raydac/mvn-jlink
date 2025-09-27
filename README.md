@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 11+](https://img.shields.io/badge/java-11.0%2b-green.svg)](https://bell-sw.com/pages/downloads/)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.4|jar)
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.igormaznitsa/mvn-jlink-wrapper/badge.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper|1.2.5|jar)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 [![PayPal donation](https://img.shields.io/badge/donation-PayPal-cyan.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
 [![YooMoney donation](https://img.shields.io/badge/donation-Yoo.money-blue.svg)](https://yoomoney.ru/to/41001158080699)
@@ -9,7 +9,7 @@
 
 # Changelog
 
-__1.2.5 (SNAPSHOT)__
+__1.2.5 (27-sep-2025)__
 
 - added `CORRETTO` provider
   for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
@@ -85,7 +85,7 @@ made available to the Maven project through the `jlink.jdk.path` property.
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.4</version>
+  <version>1.2.5</version>
   <executions>
         <execution>
             <id>cache-jdk18-openjdk-x64</id>
@@ -160,7 +160,7 @@ The path to this folder is then stored in the `jlink.jdk.path` project property.
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.4</version>
+  <version>1.2.5</version>
   <executions>
         <execution>
             <id>cache-jdk-8</id>
@@ -200,7 +200,7 @@ project build folder.
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.4</version>
+  <version>1.2.5</version>
   <executions>
         <execution>
             <id>call-jdeps</id>
@@ -233,7 +233,7 @@ folder, subfolder `preparedJDK`
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.4</version>
+  <version>1.2.5</version>
   <executions>
         <execution>
             <id>call-jlink</id>
@@ -274,7 +274,7 @@ file.
 <plugin>
   <groupId>com.igormaznitsa</groupId>
   <artifactId>mvn-jlink-wrapper</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.5</version>
   <executions>
         <execution>
             <id>call-tool</id>

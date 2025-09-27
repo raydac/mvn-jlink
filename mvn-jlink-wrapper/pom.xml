@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>mvn-jlink</artifactId>
-        <version>1.2.5-SNAPSHOT</version>
+        <version>1.2.5</version>
     </parent>
 
     <artifactId>mvn-jlink-wrapper</artifactId>
@@ -21,7 +21,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.18.0</version>
+            <version>3.19.0</version>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
@@ -129,7 +129,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.12.0</version>
+            <version>5.18.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -156,22 +156,6 @@
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>3.7.1</version>
                         <executions>
-                            <execution>
-                                <id>make-distributive</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <configuration>
-                                    <appendAssemblyId>false</appendAssemblyId>
-                                    <finalName>${project.artifactId}-${project.version}-${maven.build.timestamp}-distr
-                                    </finalName>
-                                    <descriptors>
-                                        <descriptor>src${file.separator}assembly${file.separator}distribution.xml
-                                        </descriptor>
-                                    </descriptors>
-                                </configuration>
-                            </execution>
                             <execution>
                                 <id>make-bundle</id>
                                 <phase>install</phase>
@@ -218,7 +202,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.4</version>
+                        <version>3.2.7</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -226,6 +210,35 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>net.nicoulaj.maven.plugins</groupId>
+                        <artifactId>checksum-maven-plugin</artifactId>
+                        <version>1.11</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>files</goal>
+                                </goals>
+                                <configuration>
+                                    <fileSets>
+                                        <fileSet>
+                                            <directory>${project.build.directory}</directory>
+                                            <includes>
+                                                <include>*.jar</include>
+                                                <include>*.pom</include>
+                                            </includes>
+                                        </fileSet>
+                                    </fileSets>
+                                    <algorithms>
+                                        <algorithm>SHA-1</algorithm>
+                                        <algorithm>MD5</algorithm>
+                                    </algorithms>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -360,7 +373,7 @@
                     <dependency>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>extra-enforcer-rules</artifactId>
-                        <version>1.8.0</version>
+                        <version>1.10.0</version>
                     </dependency>
                 </dependencies>
             </plugin>

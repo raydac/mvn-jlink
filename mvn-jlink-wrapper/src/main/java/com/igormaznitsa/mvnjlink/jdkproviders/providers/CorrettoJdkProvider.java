@@ -74,7 +74,8 @@ public class CorrettoJdkProvider extends UrlLinkJdkProvider {
     final String extension = config.getOrDefault("extension", findExtensionForHost(hostOs));
 
     final String baseArchiveName =
-        config.getOrDefault("file", String.format(TEMPLATE_FILE_NAME, jdkFeatureVersion,
+        config.getOrDefault("file", String.format(TEMPLATE_FILE_NAME,
+            jdkFeatureVersion,
             jdkArch.toLowerCase(Locale.ROOT),
             jdkOs.toLowerCase(Locale.ROOT),
             imageType.toLowerCase(Locale.ROOT)));
