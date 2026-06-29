@@ -88,34 +88,38 @@ public class CorrettoJdkProvider extends UrlLinkJdkProvider {
     // SHA256: if user provided sha256, use it. Otherwise, try latest_checksum endpoint if requested.
     String sha256 = config.getOrDefault("sha256", "");
     if (sha256.trim().isEmpty()) {
-      // Corretto exposes per-file checksum by simply changing the path to latest_sha256
-      final String shaUrl = makeCorrettoUrl(downloadUrl, downloadChecksumPath, archiveFileName);
-      log.info("Attempt to load SHA256 from: " + shaUrl);
-      try {
-        final String body = this.doHttpGetText(
-            createHttpClient(authorization),
-            this.tuneRequestBase(authorization),
-            shaUrl,
-            this.mojo.getConnectionTimeout(),
-            MIME_ALL
-        ).trim();
-        // the body is expected to be just the hex hash, possibly with spaces/newlines
-        final StringBuilder buf = new StringBuilder();
-        for (final char c : body.toCharArray()) {
-          if (Character.isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-            buf.append(c);
-          } else if (Character.isWhitespace(c)) {
-            if (buf.length() > 0) break; // stop at first whitespace after hash
-          } else {
-            break;
+      if (isOfflineMode()) {
+        log.info("Skipping SHA256 download in offline mode for Corretto archive: " + archiveFileName);
+      } else {
+          // Corretto exposes per-file checksum by simply changing the path to latest_sha256
+          final String shaUrl = makeCorrettoUrl(downloadUrl, downloadChecksumPath, archiveFileName);
+          log.info("Attempt to load SHA256 from: " + shaUrl);
+          try {
+              final String body = this.doHttpGetText(
+                      createHttpClient(authorization),
+                      this.tuneRequestBase(authorization),
+                      shaUrl,
+                      this.mojo.getConnectionTimeout(),
+                      MIME_ALL
+              ).trim();
+              // the body is expected to be just the hex hash, possibly with spaces/newlines
+              final StringBuilder buf = new StringBuilder();
+              for (final char c : body.toCharArray()) {
+                  if (Character.isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+                      buf.append(c);
+                  } else if (Character.isWhitespace(c)) {
+                      if (buf.length() > 0) break; // stop at first whitespace after hash
+                  } else {
+                      break;
+                  }
+              }
+              if (buf.length() > 0) {
+                  sha256 = buf.toString();
+                  log.info("Extracted downloaded SHA256: " + sha256);
+              }
+          } catch (Exception ex) {
+              log.warn("Can't load SHA256 for Corretto from 'latest_checksum': " + ex.getMessage());
           }
-        }
-        if (buf.length() > 0) {
-          sha256 = buf.toString();
-          log.info("Extracted downloaded SHA256: " + sha256);
-        }
-      } catch (Exception ex) {
-        log.warn("Can't load SHA256 for Corretto from 'latest_checksum': " + ex.getMessage());
       }
     }
 
