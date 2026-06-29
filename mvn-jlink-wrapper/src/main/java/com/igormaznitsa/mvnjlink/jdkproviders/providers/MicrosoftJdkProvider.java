@@ -66,7 +66,7 @@ public class MicrosoftJdkProvider extends UrlLinkJdkProvider {
 
     final String sha256signature;
     if (sha256 == null) {
-      if (isOfflineMode()) {
+      if (this.isOfflineMode()) {
         log.info("Skipping SHA256 download in offline mode for Microsoft archive: "
             + archiveFileName);
         sha256signature = "";

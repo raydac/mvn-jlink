@@ -88,7 +88,7 @@ public class CorrettoJdkProvider extends UrlLinkJdkProvider {
     // SHA256: if user provided sha256, use it. Otherwise, try latest_checksum endpoint if requested.
     String sha256 = config.getOrDefault("sha256", "");
     if (sha256.trim().isEmpty()) {
-      if (isOfflineMode()) {
+      if (this.isOfflineMode()) {
         log.info("Skipping SHA256 download in offline mode for Corretto archive: " + archiveFileName);
       } else {
           // Corretto exposes per-file checksum by simply changing the path to latest_sha256
