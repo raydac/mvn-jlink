@@ -9,6 +9,11 @@
 
 # Changelog
 
+__1.2.6 (SNAPSHOT)__
+
+- fix for both `CORRETTO` and `MICROSOFT` providers to work in offline
+  mode [#19](https://github.com/raydac/mvn-jlink/issues/19)
+
 __1.2.5 (27-sep-2025)__
 
 - added `CORRETTO` provider
