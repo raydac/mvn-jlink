@@ -66,23 +66,29 @@ public class MicrosoftJdkProvider extends UrlLinkJdkProvider {
 
     final String sha256signature;
     if (sha256 == null) {
-      log.info("Loading SHA256 signature file: " + urlArchiveSha);
-      final String body = this.doHttpGetText(
-          createHttpClient(authorization),
-          this.tuneRequestBase(authorization),
-          urlArchiveSha,
-          this.mojo.getConnectionTimeout(), MIME_TEXT
-      ).trim();
-      final StringBuilder buffer = new StringBuilder();
-      for (final char c : body.toCharArray()) {
-        if (Character.isDigit(c) || Character.isAlphabetic(c)) {
-          buffer.append(c);
-        } else {
-          break;
+      if (isOfflineMode()) {
+        log.info("Skipping SHA256 download in offline mode for Microsoft archive: "
+            + archiveFileName);
+        sha256signature = "";
+      } else {
+        log.info("Loading SHA256 signature file: " + urlArchiveSha);
+        final String body = this.doHttpGetText(
+            createHttpClient(authorization),
+            this.tuneRequestBase(authorization),
+            urlArchiveSha,
+            this.mojo.getConnectionTimeout(), MIME_TEXT
+        ).trim();
+        final StringBuilder buffer = new StringBuilder();
+        for (final char c : body.toCharArray()) {
+          if (Character.isDigit(c) || Character.isAlphabetic(c)) {
+            buffer.append(c);
+          } else {
+            break;
+          }
         }
+        sha256signature = buffer.toString();
+        log.info("Extracted downloaded SHA256: " + sha256signature);
       }
-      sha256signature = buffer.toString();
-      log.info("Extracted downloaded SHA256: " + sha256signature);
     } else {
       log.info("Use provided SHA256 signature: " + sha256);
       sha256signature = sha256;
