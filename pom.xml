@@ -1,133 +1,135 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.igormaznitsa</groupId>
-  <artifactId>mvn-jlink</artifactId>
-    <version>1.2.6-SNAPSHOT</version>
-  <packaging>pom</packaging>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>mvn-jlink</artifactId>
+    <version>1.2.6</version>
+    <packaging>pom</packaging>
 
-  <name>Maven Jlink plugin</name>
-  <description>Maven plugin to autoload JDK distributions and provide easy way to use their internal tools</description>
+    <name>Maven Jlink plugin</name>
+    <description>Maven plugin to autoload JDK distributions and provide easy way to use their internal tools
+    </description>
 
-  <inceptionYear>2019</inceptionYear>
+    <inceptionYear>2019</inceptionYear>
 
-  <url>https://github.com/raydac/mvn-jlink</url>
-
-  <issueManagement>
-    <system>GitHub Issues</system>
-    <url>https://github.com/raydac/mvn-jlink/issues</url>
-  </issueManagement>
-
-  <developers>
-    <developer>
-      <id>raydac</id>
-      <name>Igor Maznitsa</name>
-      <email>rrg4400@gmail.com</email>
-      <url>https://www.igormaznitsa.com</url>
-      <timezone>+3</timezone>
-      <roles>
-        <role>Author</role>
-      </roles>
-    </developer>
-  </developers>
-
-  <scm>
     <url>https://github.com/raydac/mvn-jlink</url>
-    <connection>scm:git:git://github.com/raydac/mvn-jlink.git</connection>
-    <developerConnection>scm:git:git@github.com:raydac/mvn-jlink.git</developerConnection>
-  </scm>
 
-  <organization>
-    <name>Igor Maznitsa</name>
-    <url>http://www.igormaznitsa.com</url>
-  </organization>
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/raydac/mvn-jlink/issues</url>
+    </issueManagement>
 
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+    <developers>
+        <developer>
+            <id>raydac</id>
+            <name>Igor Maznitsa</name>
+            <email>rrg4400@gmail.com</email>
+            <url>https://www.igormaznitsa.com</url>
+            <timezone>+3</timezone>
+            <roles>
+                <role>Author</role>
+            </roles>
+        </developer>
+    </developers>
 
-  <prerequisites>
-    <maven>${maven.version}</maven>
-  </prerequisites>
+    <scm>
+        <url>https://github.com/raydac/mvn-jlink</url>
+        <connection>scm:git:git://github.com/raydac/mvn-jlink.git</connection>
+        <developerConnection>scm:git:git@github.com:raydac/mvn-jlink.git</developerConnection>
+    </scm>
 
-  <properties>
-      <mvnjlink.test.version>1.2.6-SNAPSHOT</mvnjlink.test.version>
-    <meta.version>1.1.3</meta.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.version>3.3.9</maven.version>
-  </properties>
+    <organization>
+        <name>Igor Maznitsa</name>
+        <url>http://www.igormaznitsa.com</url>
+    </organization>
 
-  <profiles>
-    <profile>
-      <id>it</id>
-      <modules>
-        <module>mvn-jlink-tests</module>
-      </modules>
-    </profile>
-  </profiles>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
-  <modules>
-    <module>mvn-jlink-wrapper</module>
-  </modules>
+    <prerequisites>
+        <maven>${maven.version}</maven>
+    </prerequisites>
 
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.5.0</version>
-        </plugin>
-        <plugin>
-          <groupId>com.igormaznitsa</groupId>
-          <artifactId>uber-pom</artifactId>
-          <version>1.0.3</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-clean-plugin</artifactId>
-            <version>3.5.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-            <version>3.3.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.14.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.6.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-            <version>3.5.3</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-            <version>3.4.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-            <version>3.1.4</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-            <version>3.1.4</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-invoker-plugin</artifactId>
-            <version>3.9.1</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
+    <properties>
+        <mvnjlink.test.version>1.2.6</mvnjlink.test.version>
+        <meta.version>1.1.3</meta.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.release>1.8</maven.release>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.version>3.3.9</maven.version>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>it</id>
+            <modules>
+                <module>mvn-jlink-tests</module>
+            </modules>
+        </profile>
+    </profiles>
+
+    <modules>
+        <module>mvn-jlink-wrapper</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.igormaznitsa</groupId>
+                    <artifactId>uber-pom</artifactId>
+                    <version>1.0.3</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.14.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.3</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.4</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.1.4</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-invoker-plugin</artifactId>
+                    <version>3.9.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
 </project>

@@ -9,22 +9,16 @@
 
 # Changelog
 
-__1.2.6 (SNAPSHOT)__
+__1.2.6 (01-jul-2026)__
 
 - fix for both `CORRETTO` and `MICROSOFT` providers to work in offline
   mode [#19](https://github.com/raydac/mvn-jlink/issues/19)
+- updated dependencies
 
 __1.2.5 (27-sep-2025)__
 
 - added `CORRETTO` provider
   for [AWS Corretto JDK](https://aws.amazon.com/corretto/) [#17](https://github.com/raydac/mvn-jlink/issues/17)
-- updated dependencies
-
-__1.2.4 (07-sep-2024)__
-
-- added `ADOPTIUM_API` provider for ADOPTIUM API REST calls [#15](https://github.com/raydac/mvn-jlink/issues/14)
-- fixed pattern to extract build version and extensions for ADOPTIUM
-  provider [#14](https://github.com/raydac/mvn-jlink/issues/15)
 - updated dependencies
 
 [full changelog](CHANGELOG.txt)
