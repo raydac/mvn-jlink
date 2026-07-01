@@ -1,6 +1,6 @@
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-green.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Java 11+](https://img.shields.io/badge/java-11.0%2b-green.svg)](https://bell-sw.com/pages/downloads/)
-[![Maven central](https://img.shields.io/badge/maven%20central-1.2.6%2b-green.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper)
+[![Maven central](https://img.shields.io/badge/maven%20central-1.2.6-green.svg)](http://search.maven.org/#artifactdetails|com.igormaznitsa|mvn-jlink-wrapper)
 [![Maven 3.3.9+](https://img.shields.io/badge/maven-3.3.9%2b-green.svg)](https://maven.apache.org/)
 
 ![logo](assets/logo_git.png)
